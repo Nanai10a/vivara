@@ -1892,6 +1892,7 @@ dependencies = [
  "actix",
  "simd-json",
  "songbird",
+ "tracing",
  "tracing-subscriber",
  "twilight",
  "twilight-embed-builder",
