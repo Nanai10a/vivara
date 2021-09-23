@@ -1,3 +1,7 @@
+mod cmd;
+mod connection;
+mod gateway;
+
 fn main() {
     tracing_subscriber::fmt().pretty().init();
 
