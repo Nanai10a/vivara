@@ -12,6 +12,8 @@ twilight-embed-builder = "0.6.0"
 
 tracing-subscriber = "0.2.24"
 tracing = "0.1.28"
+url = "2.2.2"
+shell-words = "1.0.0"
 
 [dependencies.twilight-gateway]
 version = "0.6.4"
