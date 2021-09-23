@@ -29,3 +29,8 @@ features = ["driver", "gateway", "twilight-rustls", "zlib-simd"]
 [dependencies.simd-json]
 version = "0.4.7"
 features = ["allow-non-simd"]
+
+[dependencies.clap]
+version = "3.0.0-beta.4"
+default-features = false
+features = ["std", "derive"]
