@@ -18,6 +18,7 @@ impl Handler<RawCommand> for CommandParser {
             content,
             from,
             user,
+            guild,
         }: RawCommand,
         _: &mut Self::Context,
     ) -> Self::Result {
@@ -34,6 +35,7 @@ impl Handler<RawCommand> for CommandParser {
                 cmd,
                 user,
                 from,
+                guild,
             });
         }
     }
@@ -60,8 +62,9 @@ enum Cmd {
 
 pub struct Command {
     cmd: Cmd,
-    user: u64,
     from: MsgRef,
+    user: u64,
+    guild: u64,
 }
 impl Message for Command {
     type Result = ();
@@ -77,12 +80,22 @@ impl Handler<Command> for CommandProcesser {
 
     fn handle(
         &mut self,
-        Command { cmd, user, from }: Command,
+        Command {
+            cmd,
+            user,
+            from,
+            guild,
+        }: Command,
         _: &mut Self::Context,
     ) -> Self::Result {
         use Cmd::*;
         match cmd {
-            Url { url } => UrlQueue::from_registry().do_send(UrlQueueData { url, from, user }),
+            Url { url } => UrlQueue::from_registry().do_send(UrlQueueData {
+                url,
+                from,
+                user,
+                guild,
+            }),
             #[allow(unreachable_patterns)]
             _ => unimplemented!("unimplemented command"),
         }

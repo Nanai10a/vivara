@@ -2,18 +2,19 @@ use actix::prelude::*;
 
 #[derive(Debug)]
 pub struct MsgRef {
-    message_id: u64,
-    channel_id: u64,
-    guild_id: Option<u64>,
+    message: u64,
+    channel: u64,
+    guild: Option<u64>,
 }
 impl MsgRef {
-    pub fn is_dm(&self) -> bool { self.guild_id.is_none() }
+    pub fn is_dm(&self) -> bool { self.guild.is_none() }
 }
 
-pub struct RawCommand{
-    pub content: String, 
+pub struct RawCommand {
+    pub content: String,
     pub from: MsgRef,
     pub user: u64,
+    pub guild: u64,
 }
 impl Message for RawCommand {
     type Result = ();
