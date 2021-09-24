@@ -15,6 +15,10 @@ tracing = "0.1.28"
 url = "2.2.2"
 shell-words = "1.0.0"
 
+[dependencies.tokio]
+version = "1.12.0"
+features = ["sync"]
+
 [dependencies.twilight-gateway]
 version = "0.6.4"
 features = ["zlib-simd"]
@@ -26,7 +30,7 @@ features = ["simd-json"]
 [dependencies.songbird]
 version = "0.2.0"
 default-features = false
-features = ["driver", "gateway", "twilight-rustls", "zlib-simd"]
+features = ["driver", "gateway", "builtin-queue", "twilight-rustls", "zlib-simd"]
 
 [dependencies.simd-json]
 version = "0.4.7"

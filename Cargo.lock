@@ -1985,6 +1985,7 @@ dependencies = [
  "shell-words",
  "simd-json",
  "songbird",
+ "tokio",
  "tracing",
  "tracing-subscriber",
  "twilight",
