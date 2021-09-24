@@ -1,6 +1,7 @@
 use actix::prelude::*;
 use futures_util::StreamExt;
 use twilight_gateway::{Cluster, Intents};
+use twilight_http::Client;
 use twilight_model::gateway::event::Event;
 
 use crate::cmd::CommandParser;
@@ -24,23 +25,6 @@ pub struct RawCommand {
     pub user: u64,
 }
 impl Message for RawCommand {
-    type Result = ();
-}
-
-#[derive(Debug)]
-pub struct Reply {
-    pub msg: String,
-    pub kind: Kind,
-    pub to: MsgRef,
-}
-
-#[derive(Debug)]
-pub enum Kind {
-    Ok,
-    Err,
-}
-
-impl Message for Reply {
     type Result = ();
 }
 
@@ -113,4 +97,78 @@ struct GatewayMessage {
 
 impl Message for GatewayMessage {
     type Result = ();
+}
+
+struct Responder {
+    client: Client,
+}
+impl Default for Responder {
+    fn default() -> Self {
+        Self {
+            client: Client::new(token()),
+        }
+    }
+}
+impl Actor for Responder {
+    type Context = Context<Self>;
+}
+impl Handler<Reply> for Responder {
+    type Result = ();
+
+    fn handle(
+        &mut self,
+        Reply {
+            msg,
+            kind,
+            to:
+                MsgRef {
+                    message,
+                    channel,
+                    guild,
+                },
+        }: Reply,
+        ctx: &mut Self::Context,
+    ) -> Self::Result {
+        self.client
+            .create_message(channel.into())
+            .content(&format!("{}: {}", kind, msg))
+            .unwrap()
+            .reply(message.into())
+            .exec()
+            .pipe(|f| async {
+                match f.await {
+                    Ok(_) => (),
+                    Err(e) => tracing::warn!("send error: {}", e),
+                };
+            })
+            .into_actor(self)
+            .spawn(ctx)
+    }
+}
+impl Supervised for Responder {}
+impl ArbiterService for Responder {}
+
+#[derive(Debug)]
+pub struct Reply {
+    pub msg: String,
+    pub kind: Kind,
+    pub to: MsgRef,
+}
+
+#[derive(Debug)]
+pub enum Kind {
+    Ok,
+    Err,
+}
+impl Message for Reply {
+    type Result = ();
+}
+
+impl core::fmt::Display for Kind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Kind::Ok => write!(f, "ok"),
+            Kind::Err => write!(f, "err"),
+        }
+    }
 }
