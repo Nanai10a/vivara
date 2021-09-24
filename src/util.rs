@@ -43,3 +43,9 @@ pub fn do_send_handle<M: core::fmt::Debug>(res: Result<(), actix::prelude::SendE
 
     tracing::warn!("do_send failed: {} with: {:?}", reason, inner)
 }
+
+pub fn token<R>() -> R
+where R: From<String> {
+    let token = std::env::var("DISCORD_BOT_TOKEN").expect("");
+    token.into()
+}
