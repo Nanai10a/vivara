@@ -49,3 +49,14 @@ where R: From<String> {
     let token = std::env::var("DISCORD_BOT_TOKEN").expect("");
     token.into()
 }
+
+pub fn reply<S>(msg: S, to: crate::gateway::MsgRef)
+where S: ToString {
+    crate::gateway::get_reply_recipient()
+        .do_send(crate::gateway::Reply {
+            msg: msg.to_string(),
+            kind: crate::gateway::Kind::Ok,
+            to,
+        })
+        .unwrap()
+}
