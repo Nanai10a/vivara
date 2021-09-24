@@ -46,7 +46,14 @@ pub fn do_send_handle<M: core::fmt::Debug>(res: Result<(), actix::prelude::SendE
 
 pub fn token<R>() -> R
 where R: From<String> {
-    let token = std::env::var("DISCORD_BOT_TOKEN").expect("");
+    let token = match std::env::var("DISCORD_BOT_TOKEN") {
+        Ok(o) => o,
+        Err(e) => {
+            tracing::error!("cannot get token: {}", e);
+            actix::System::current().stop();
+            String::new() // tmp value
+        },
+    };
     token.into()
 }
 
