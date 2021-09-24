@@ -8,13 +8,14 @@ pub struct MsgRef {
 }
 impl MsgRef {
     pub fn is_dm(&self) -> bool { self.guild.is_none() }
+
+    pub fn guild(&self) -> Option<u64> { self.guild }
 }
 
 pub struct RawCommand {
     pub content: String,
     pub from: MsgRef,
     pub user: u64,
-    pub guild: u64,
 }
 impl Message for RawCommand {
     type Result = ();

@@ -18,24 +18,34 @@ impl Handler<RawCommand> for CommandParser {
             content,
             from,
             user,
-            guild,
         }: RawCommand,
         _: &mut Self::Context,
     ) -> Self::Result {
         let split = try_handle!(shell_words::split(&content); to = from);
-        if let Some("*v") = split.get(0).map(|s| s.as_str()) {
-            use clap::Clap;
 
-            let cmd = try_handle!(Parser::try_parse_from(split);
+        match split.get(0).map(|s| s.as_str()) {
+            Some("*v") => (),
+            _ => return,
+        }
+
+        use clap::Clap;
+        if from.is_dm() {
+            let _ = try_handle!(CtrlCmdParser::try_parse_from(split);
                 to = from;
-                match = Parser { cmd } => cmd
+                match = CtrlCmdParser { cmd } => cmd
             );
 
-            CommandProcesser::from_registry().do_send(Command {
+            unimplemented!();
+        } else {
+            let cmd = try_handle!(PlayCmdParser::try_parse_from(split);
+                to = from;
+                match = PlayCmdParser { cmd } => cmd
+            );
+
+            PlayCommandProcesser::from_registry().do_send(PlayCommand {
                 cmd,
-                user,
+                guild: from.guild().unwrap(),
                 from,
-                guild,
             });
         }
     }
@@ -44,14 +54,14 @@ impl Supervised for CommandParser {}
 impl ArbiterService for CommandParser {}
 
 #[derive(clap::Clap)]
-struct Parser {
+struct PlayCmdParser {
     #[clap(subcommand)]
-    cmd: Cmd,
+    cmd: PlayCmd,
 }
 
 #[derive(clap::Clap)]
 #[non_exhaustive]
-enum Cmd {
+enum PlayCmd {
     /// using url.
     #[clap(short_flag = 'U')]
     Url {
@@ -60,46 +70,45 @@ enum Cmd {
     },
 }
 
-pub struct Command {
-    cmd: Cmd,
+#[derive(clap::Clap)]
+struct CtrlCmdParser {
+    #[clap(subcommand)]
+    cmd: CtrlCmd,
+}
+
+#[derive(clap::Clap)]
+#[non_exhaustive]
+enum CtrlCmd {}
+
+pub struct PlayCommand {
+    cmd: PlayCmd,
     from: MsgRef,
-    user: u64,
     guild: u64,
 }
-impl Message for Command {
+impl Message for PlayCommand {
     type Result = ();
 }
 
 #[derive(Default)]
-pub struct CommandProcesser;
-impl Actor for CommandProcesser {
+pub struct PlayCommandProcesser;
+impl Actor for PlayCommandProcesser {
     type Context = Context<Self>;
 }
-impl Handler<Command> for CommandProcesser {
+impl Handler<PlayCommand> for PlayCommandProcesser {
     type Result = ();
 
     fn handle(
         &mut self,
-        Command {
-            cmd,
-            user,
-            from,
-            guild,
-        }: Command,
+        PlayCommand { cmd, from, guild }: PlayCommand,
         _: &mut Self::Context,
     ) -> Self::Result {
-        use Cmd::*;
+        use PlayCmd::*;
         match cmd {
-            Url { url } => UrlQueue::from_registry().do_send(UrlQueueData {
-                url,
-                from,
-                user,
-                guild,
-            }),
+            Url { url } => UrlQueue::from_registry().do_send(UrlQueueData { url, from, guild }),
             #[allow(unreachable_patterns)]
             _ => unimplemented!("unimplemented command"),
         }
     }
 }
-impl Supervised for CommandProcesser {}
-impl ArbiterService for CommandProcesser {}
+impl Supervised for PlayCommandProcesser {}
+impl ArbiterService for PlayCommandProcesser {}
