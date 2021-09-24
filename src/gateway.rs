@@ -28,7 +28,7 @@ impl Message for RawCommand {
     type Result = ();
 }
 
-pub fn get_reply_recipient() -> Recipient<Reply> { unimplemented!() }
+pub fn get_reply_recipient() -> Recipient<Reply> { Responder::from_registry().recipient() }
 
 #[derive(Default)]
 struct Gateway;
