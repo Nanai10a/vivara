@@ -1,27 +1,7 @@
 use actix::prelude::*;
 
 use crate::connection::{UrlQueue, UrlQueueData};
-use crate::gateway::{get_reply_recipient, Kind, MsgRef, RawCommand, Reply};
-use crate::util::{do_send_handle, Pipe};
-
-macro_rules! try_handle {
-    ($expr:expr; to = $to:expr) => {
-        try_handle!($expr; to = $to; match = o => o)
-    };
-    ($expr:expr; to = $to:expr; match = $pat:pat => $( $out:tt )*) => {
-        match $expr {
-            Ok($pat) => $( $out )*,
-            Err(e) =>
-                return get_reply_recipient()
-                    .do_send(Reply {
-                        msg: e.to_string(),
-                        kind: Kind::Err,
-                        to: $to
-                    })
-                    .pipe(do_send_handle),
-        }
-    };
-}
+use crate::gateway::{MsgRef, RawCommand};
 
 #[derive(Default)]
 pub struct CommandParser;
