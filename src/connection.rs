@@ -172,32 +172,25 @@ impl Caller {
 }
 impl Actor for Caller {
     type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Self::Context) {
+        async { Self::init().await }
+            .into_actor(self)
+            .map(|sb, this, _| {
+                this.songbird = sb.pipe(Some);
+            })
+            .pipe(|f| ctx.wait(f))
+    }
 }
 impl Handler<CallRequest> for Caller {
-    type Result = ResponseActFuture<Self, Arc<Mutex<Call>>>;
+    type Result = Arc<Mutex<Call>>;
 
     fn handle(
         &mut self,
         CallRequest { guild }: CallRequest,
         _: &mut Self::Context,
     ) -> Self::Result {
-        let is_initialized = self.songbird.is_some();
-        async move {
-            if !is_initialized {
-                Self::init().await.pipe(Some)
-            } else {
-                None
-            }
-        }
-        .into_actor(self)
-        .map(move |maybe_init, this, _| {
-            if let Some(sb) = maybe_init {
-                this.songbird = sb.pipe(Some);
-            }
-
-            this.songbird.as_ref().unwrap().get_or_insert(guild.into())
-        })
-        .boxed_local()
+        self.songbird.as_ref().unwrap().get_or_insert(guild.into())
     }
 }
 impl Supervised for Caller {}
