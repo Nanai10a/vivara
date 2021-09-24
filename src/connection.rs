@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use crate::gateway;
-use crate::util::{token, Pipe};
+use crate::util::{reply, token, Pipe};
 
 #[derive(Default)]
 pub struct UrlQueue;
@@ -30,7 +30,7 @@ impl Handler<UrlQueueData> for UrlQueue {
 
                 Connector::from_registry().do_send(QueueData {
                     guild,
-                    kind: Kind::Source(input),
+                    kind: QueueDataKind::Source(input),
                     from,
                 });
             })
@@ -55,9 +55,39 @@ impl Actor for Connector {
     type Context = Context<Self>;
 }
 impl Handler<Action> for Connector {
-    type Result = ();
+    type Result = ResponseFuture<()>;
 
-    fn handle(&mut self, _: Action, _: &mut Self::Context) -> Self::Result { unimplemented!() }
+    fn handle(
+        &mut self,
+        Action { kind, from, guild }: Action,
+        _: &mut Self::Context,
+    ) -> Self::Result {
+        async move {
+            let arc = Caller::from_registry()
+                .send(CallRequest { guild })
+                .await
+                .unwrap();
+            let mut guard = arc.lock().await;
+
+            use ActionKind::*;
+            match kind {
+                Join { channel } => {
+                    let join_fut = try_handle!(guard.join(channel.into()).await; to = from);
+                    drop(guard);
+
+                    try_handle!(join_fut.await; to = from);
+
+                    reply("joined", from)
+                },
+                Leave => {
+                    try_handle!(guard.leave().await; to = from);
+
+                    reply("leaved", from)
+                },
+            }
+        }
+        .pipe(Box::pin)
+    }
 }
 impl Handler<QueueData> for Connector {
     type Result = ResponseFuture<()>;
@@ -72,17 +102,13 @@ impl Handler<QueueData> for Connector {
             .send(CallRequest { guild }).await; to = from);
             let mut guard = arc.lock().await;
 
-            use Kind::*;
+            use QueueDataKind::*;
             match kind {
                 Source(input) => guard.enqueue_source(input),
                 Track(track) => guard.enqueue(track),
             }
 
-            gateway::get_reply_recipient().do_send(gateway::Reply {
-                msg: "queued".to_string(),
-                kind: gateway::Kind::Ok,
-                to: from,
-            }).unwrap();
+            reply("queued", from)
         }
         .pipe(Box::pin)
     }
@@ -91,9 +117,15 @@ impl Supervised for Connector {}
 impl ArbiterService for Connector {}
 
 #[non_exhaustive]
-enum Action {
-    // Join,
-    // Leave,
+struct Action {
+    kind: ActionKind,
+    from: gateway::MsgRef,
+    guild: u64,
+}
+
+enum ActionKind {
+    Join { channel: u64 },
+    Leave,
 }
 impl Message for Action {
     type Result = ();
@@ -101,11 +133,11 @@ impl Message for Action {
 
 struct QueueData {
     guild: u64,
-    kind: Kind,
+    kind: QueueDataKind,
     from: gateway::MsgRef,
 }
 
-enum Kind {
+enum QueueDataKind {
     Source(Input),
     Track(Track),
 }
