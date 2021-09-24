@@ -31,7 +31,7 @@ impl Message for RawCommand {
 pub fn get_reply_recipient() -> Recipient<Reply> { Responder::from_registry().recipient() }
 
 #[derive(Default)]
-struct Gateway;
+pub struct Gateway;
 impl Actor for Gateway {
     type Context = Context<Self>;
 
@@ -131,7 +131,7 @@ impl Handler<Reply> for Responder {
     ) -> Self::Result {
         self.client
             .create_message(channel.into())
-            .content(&format!("{}: {}", kind, msg))
+            .content(&format!("{}:\n{}", kind, msg))
             .unwrap()
             .reply(message.into())
             .exec()
