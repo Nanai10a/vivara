@@ -1,3 +1,5 @@
+extern crate alloc;
+
 macro_rules! try_handle {
     ($expr:expr; to = $to:expr) => {
         try_handle!($expr; to = $to; match = o => o)
