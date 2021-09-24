@@ -34,8 +34,12 @@ fn main() {
     sys.block_on(async move {
         tracing::info!("initializing...");
 
-        // process here
+        use actix::Actor;
+
+        gateway::Gateway::start_default();
 
         tracing::info!("initialized.");
     });
+
+    sys.run().unwrap()
 }
