@@ -124,7 +124,7 @@ impl Handler<Reply> for Responder {
                 MsgRef {
                     message,
                     channel,
-                    guild,
+                    guild: _,
                 },
         }: Reply,
         ctx: &mut Self::Context,
