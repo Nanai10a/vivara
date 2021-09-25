@@ -60,7 +60,6 @@ struct PlayCmdParser {
 }
 
 #[derive(clap::Clap)]
-#[non_exhaustive]
 enum PlayCmd {
     /// using url.
     #[clap(short_flag = 'U')]
@@ -77,7 +76,6 @@ struct CtrlCmdParser {
 }
 
 #[derive(clap::Clap)]
-#[non_exhaustive]
 enum CtrlCmd {}
 
 pub struct PlayCommand {
