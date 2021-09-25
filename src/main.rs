@@ -1,3 +1,5 @@
+#![allow(clippy::unit_arg)]
+
 extern crate alloc;
 
 macro_rules! try_handle {
