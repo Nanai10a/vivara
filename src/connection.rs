@@ -157,6 +157,8 @@ impl Caller {
                 .unwrap()
                 .0;
 
+        cluster.up().await;
+
         let user_id = twilight_http::Client::new(token())
             .current_user()
             .exec()
