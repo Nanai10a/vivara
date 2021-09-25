@@ -181,7 +181,7 @@ impl Actor for Caller {
             .map(|sb, this, _| {
                 this.songbird = sb.pipe(Some);
             })
-            .pipe(|f| ctx.wait(f))
+            .wait(ctx)
     }
 }
 impl Handler<CallRequest> for Caller {
