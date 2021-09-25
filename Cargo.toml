@@ -16,6 +16,7 @@ tracing-subscriber = "0.2.24"
 tracing = "0.1.28"
 url = "2.2.2"
 shell-words = "1.0.0"
+dashmap = "4.0.2"
 
 [dependencies.tokio]
 version = "1.12.0"
