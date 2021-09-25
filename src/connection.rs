@@ -151,11 +151,17 @@ struct Caller {
 }
 impl Caller {
     async fn init() -> Songbird {
-        let cluster =
-            twilight_gateway::Cluster::new(token::<String>(), twilight_gateway::Intents::empty())
-                .await
-                .unwrap()
-                .0;
+        let cluster = loop {
+            match twilight_gateway::Cluster::new(
+                token::<String>(),
+                twilight_gateway::Intents::GUILD_VOICE_STATES,
+            )
+            .await
+            {
+                Ok((o, _)) => break o,
+                Err(e) => tracing::warn!("initialize error: {}", e),
+            }
+        };
 
         cluster.up().await;
 
