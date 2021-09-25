@@ -7,7 +7,7 @@ use twilight_model::gateway::event::Event;
 use crate::cmd::CommandParser;
 use crate::util::{token, Pipe};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct MsgRef {
     message: u64,
     channel: u64,
@@ -19,6 +19,7 @@ impl MsgRef {
     pub fn guild(&self) -> Option<u64> { self.guild }
 }
 
+#[derive(Debug, Clone)]
 pub struct RawCommand {
     pub content: String,
     pub from: MsgRef,
@@ -148,14 +149,14 @@ impl Handler<Reply> for Responder {
 impl Supervised for Responder {}
 impl ArbiterService for Responder {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Reply {
     pub msg: String,
     pub kind: Kind,
     pub to: MsgRef,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Kind {
     Ok,
     Err,
