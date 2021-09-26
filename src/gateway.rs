@@ -10,16 +10,13 @@ use crate::util::{token, Pipe};
 pub struct MsgRef {
     message: u64,
     channel: u64,
-    guild: Option<u64>,
-}
-impl MsgRef {
-    pub fn guild(&self) -> Option<u64> { self.guild }
 }
 
 #[derive(Debug, Clone)]
 pub struct RawCommand {
     pub content: String,
     pub from: MsgRef,
+    pub guild: Option<u64>,
     pub user: u64,
 }
 impl Message for RawCommand {
@@ -56,9 +53,9 @@ impl Actor for Gateway {
                         from: MsgRef {
                             message: mc.0.id.0,
                             channel: mc.0.channel_id.0,
-                            guild: mc.0.guild_id.map(|i| i.0),
                         },
                         user: mc.0.author.id.0,
+                        guild: mc.0.guild_id.map(|i| i.0)
                     }
                     .pipe(|m| addr.try_send(m).expect("failed sending"));
                 }
@@ -77,6 +74,7 @@ impl Handler<GatewayMessage> for Gateway {
             content,
             from,
             user,
+            guild,
         }: GatewayMessage,
         _: &mut Self::Context,
     ) -> Self::Result {
@@ -85,6 +83,7 @@ impl Handler<GatewayMessage> for Gateway {
                 content,
                 from,
                 user,
+                guild
             })
             .expect("failed sending")
     }
@@ -95,6 +94,7 @@ impl ArbiterService for Gateway {}
 struct GatewayMessage {
     content: String,
     from: MsgRef,
+    guild: Option<u64>,
     user: u64,
 }
 
@@ -122,12 +122,7 @@ impl Handler<Reply> for Responder {
         &mut self,
         Reply {
             msg,
-            to:
-                MsgRef {
-                    message,
-                    channel,
-                    guild: _,
-                },
+            to: MsgRef { message, channel },
         }: Reply,
         ctx: &mut Self::Context,
     ) -> Self::Result {

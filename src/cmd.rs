@@ -20,6 +20,7 @@ impl Handler<RawCommand> for CommandParser {
             content,
             from,
             user,
+            guild
         }: RawCommand,
         _: &mut Self::Context,
     ) -> Self::Result {
@@ -32,7 +33,7 @@ impl Handler<RawCommand> for CommandParser {
             }
 
             use clap::Clap;
-            match from.guild() {
+            match guild {
                 None => {
                     let CtrlCmdParser { cmd } =
                         CtrlCmdParser::try_parse_from(split).map_err(|e| e.to_string())?;
