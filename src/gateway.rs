@@ -36,16 +36,21 @@ impl Actor for Gateway {
         let addr = ctx.address();
 
         async move {
-            let (clu, mut eve) = Cluster::new(
-                token::<String>(),
-                Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES,
-            )
-            .await
-            .expect("failed building cluster");
+            let (cluster, mut events) = loop {
+                match twilight_gateway::Cluster::new(
+                    token::<String>(),
+                    twilight_gateway::Intents::GUILD_VOICE_STATES,
+                )
+                .await
+                {
+                    Ok(t) => break t,
+                    Err(e) => tracing::warn!("failed initializing cluster: {}", e),
+                }
+            };
 
-            clu.up().await;
+            cluster.up().await;
 
-            while let Some((_, e)) = eve.next().await {
+            while let Some((_, e)) = events.next().await {
                 if let Event::MessageCreate(mc) = e {
                     GatewayMessage {
                         content: mc.0.content,
@@ -97,7 +102,6 @@ struct GatewayMessage {
 impl Message for GatewayMessage {
     type Result = ();
 }
-
 
 pub struct Responder {
     client: Client,
