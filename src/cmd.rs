@@ -3,6 +3,7 @@ use url::Url;
 
 use crate::connection::{Action, ActionKind, Connector, UrlQueue, UrlQueueData};
 use crate::gateway::{MsgRef, RawCommand};
+use crate::util::reply_err;
 
 #[derive(Default)]
 pub struct CommandParser;
@@ -22,31 +23,34 @@ impl Handler<RawCommand> for CommandParser {
         }: RawCommand,
         _: &mut Self::Context,
     ) -> Self::Result {
-        let split = try_handle!(shell_words::split(&content); to = from);
+        let result: Result<_, String> = try {
+            let split = shell_words::split(&content).map_err(|e| e.to_string())?;
 
-        match split.get(0).map(|s| s.as_str()) {
-            Some("*v") => (),
-            _ => return,
-        }
+            match split.get(0).map(|s| s.as_str()) {
+                Some("*v") => (),
+                _ => return,
+            }
 
-        use clap::Clap;
-        match from.guild() {
-            None => {
-                let _ = try_handle!(CtrlCmdParser::try_parse_from(split);
-                    to = from;
-                    match = CtrlCmdParser { cmd } => cmd
-                );
+            use clap::Clap;
+            match from.guild() {
+                None => {
+                    let CtrlCmdParser { cmd } =
+                        CtrlCmdParser::try_parse_from(split).map_err(|e| e.to_string())?;
 
-                unimplemented!();
-            },
-            Some(guild) => {
-                let cmd = try_handle!(PlayCmdParser::try_parse_from(split);
-                    to = from;
-                    match = PlayCmdParser { cmd } => cmd
-                );
+                    unimplemented!();
+                },
+                Some(guild) => {
+                    let PlayCmdParser { cmd } =
+                        PlayCmdParser::try_parse_from(split).map_err(|e| e.to_string())?;
 
-                PlayCommandProcesser::from_registry().do_send(PlayCommand { cmd, guild, from });
-            },
+                    PlayCommandProcesser::from_registry().do_send(PlayCommand { cmd, guild, from });
+                },
+            }
+        };
+
+        match result {
+            Ok(o) => o,
+            Err(e) => reply_err(e, from),
         }
     }
 }
