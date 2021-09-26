@@ -223,7 +223,7 @@ impl Caller {
             .await
             {
                 Ok(t) => break t,
-                Err(e) => tracing::warn!("initialize error: {}", e),
+                Err(e) => tracing::warn!("failed initializing cluster: {}", e),
             }
         };
 
@@ -238,7 +238,7 @@ impl Caller {
             let response = match result {
                 Ok(o) => o,
                 Err(e) => {
-                    tracing::warn!("initialize error: {}", e);
+                    tracing::warn!("failed getting current_user: {}", e);
                     continue;
                 },
             };
@@ -246,7 +246,7 @@ impl Caller {
             let user = match response.model().await {
                 Ok(o) => o,
                 Err(e) => {
-                    tracing::warn!("initialize error: {}", e);
+                    tracing::warn!("failed deserialization to response of getting current_user: {}", e);
                     continue;
                 },
             };
@@ -279,7 +279,7 @@ impl Actor for Caller {
 
         async move {
             while let Some((id, event)) = events.next().await {
-                tracing::trace!("id: {} | event: {:?}", id, event);
+                tracing::trace!("received event: ({}) {:?}", id, event);
                 arc.process(&event).await;
             }
         }

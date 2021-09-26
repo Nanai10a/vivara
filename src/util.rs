@@ -41,7 +41,7 @@ pub fn do_send_handle<M: core::fmt::Debug>(res: Result<(), actix::prelude::SendE
         Err(Closed(i)) => ("cannot reach addr", i),
     };
 
-    tracing::warn!("do_send failed: {} with: {:?}", reason, inner)
+    tracing::warn!("failed do_send: {} with: {:?}", reason, inner)
 }
 
 pub fn token<R>() -> R
@@ -49,7 +49,7 @@ where R: From<String> {
     let token = match std::env::var("DISCORD_BOT_TOKEN") {
         Ok(o) => o,
         Err(e) => {
-            tracing::error!("cannot get token: {}", e);
+            tracing::error!("failed getting token: {}", e);
             actix::System::current().stop();
             String::new() // tmp value
         },
