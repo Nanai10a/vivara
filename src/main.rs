@@ -1,3 +1,4 @@
+#![feature(result_flattening)]
 #![allow(clippy::unit_arg)]
 
 extern crate alloc;
