@@ -18,9 +18,9 @@ pub struct MessageRef {
 #[derive(Debug, Clone)]
 pub struct RawCommand {
     pub content: String,
+    pub user: u64,
     pub from: MessageRef,
     pub guild: Option<u64>,
-    pub user: u64,
 }
 impl Message for RawCommand {
     type Result = ();
@@ -96,9 +96,9 @@ impl ArbiterService for Gateway {}
 
 struct GatewayMessage {
     content: String,
+    user: u64,
     from: MessageRef,
     guild: Option<u64>,
-    user: u64,
 }
 
 impl Message for GatewayMessage {

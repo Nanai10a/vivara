@@ -60,9 +60,9 @@ impl Supervised for Queuer {}
 impl ArbiterService for Queuer {}
 
 pub struct UrlQueueData {
+    pub url: Url,
     pub from: MessageRef,
     pub guild: u64,
-    pub url: Url,
 }
 impl Message for UrlQueueData {
     type Result = ();
@@ -202,9 +202,9 @@ impl Message for Action {
 }
 
 struct QueueData {
+    input: Input,
     from: MessageRef,
     guild: u64,
-    input: Input,
 }
 impl Message for QueueData {
     type Result = ();
