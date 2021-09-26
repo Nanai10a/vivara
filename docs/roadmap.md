@@ -18,6 +18,13 @@
 ## v0.4
 
 - if systems downs, can back using temporary datas
+- seeking systems
+
+# v0.5
+
+- source:youtube supports
+  - playlists
+  - search and queue
 
 ## and beyond...
 
