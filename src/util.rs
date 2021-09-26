@@ -75,5 +75,5 @@ where S: ToString {
             kind,
             to,
         })
-        .unwrap()
+        .pipe(do_send_handle)
 }
