@@ -59,10 +59,20 @@ where R: From<String> {
 
 pub fn reply<S>(msg: S, to: crate::gateway::MsgRef)
 where S: ToString {
+    reply_inner(msg, crate::gateway::Kind::Ok, to)
+}
+
+pub fn reply_err<S>(msg: S, to: crate::gateway::MsgRef)
+where S: ToString {
+    reply_inner(msg, crate::gateway::Kind::Err, to)
+}
+
+fn reply_inner<S>(msg: S, kind: crate::gateway::Kind, to: crate::gateway::MsgRef)
+where S: ToString {
     crate::gateway::get_reply_recipient()
         .do_send(crate::gateway::Reply {
             msg: msg.to_string(),
-            kind: crate::gateway::Kind::Ok,
+            kind,
             to,
         })
         .unwrap()
