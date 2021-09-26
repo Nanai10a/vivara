@@ -35,17 +35,17 @@ impl Handler<RawCommand> for CommandParser {
             use clap::Clap;
             match guild {
                 None => {
-                    let CtrlCmdParser { cmd } =
-                        CtrlCmdParser::try_parse_from(split).map_err(|e| e.to_string())?;
+                    let PrivateCommandParser { cmd } =
+                        PrivateCommandParser::try_parse_from(split).map_err(|e| e.to_string())?;
 
                     unimplemented!();
                 },
                 Some(guild) => {
-                    let PlayCmdParser { cmd } =
-                        PlayCmdParser::try_parse_from(split).map_err(|e| e.to_string())?;
+                    let GuildCommandParser { cmd } =
+                        GuildCommandParser::try_parse_from(split).map_err(|e| e.to_string())?;
 
-                    PlayCommandProcesser::from_registry()
-                        .try_send(PlayCommand { cmd, guild, from })
+                    GuildCommandProcesser::from_registry()
+                        .try_send(GuildCommandData { cmd, guild, from })
                         .expect("failed sending");
                 },
             }
@@ -61,33 +61,33 @@ impl Supervised for CommandParser {}
 impl ArbiterService for CommandParser {}
 
 #[derive(clap::Clap)]
-struct PlayCmdParser {
+struct GuildCommandParser {
     #[clap(subcommand)]
-    cmd: PlayCmd,
+    cmd: GuildCommand,
 }
 
 #[derive(clap::Clap)]
-enum PlayCmd {
+enum GuildCommand {
     #[clap(short_flag = 'Q')]
     Queue {
         #[clap(subcommand)]
-        cmd: QueueCmd,
+        cmd: QueueCommand,
     },
-    #[clap(short_flag = 'A')]
-    Access {
+    #[clap(short_flag = 'C')]
+    Control {
         #[clap(subcommand)]
-        cmd: AccessCmd,
+        cmd: ControlCommand,
     },
 }
 
 #[derive(clap::Clap)]
-enum QueueCmd {
+enum QueueCommand {
     #[clap(short_flag = 'u')]
     Url { url: Url },
 }
 
 #[derive(clap::Clap)]
-enum AccessCmd {
+enum ControlCommand {
     #[clap(short_flag = 'j')]
     Join { channel: u64 },
     #[clap(short_flag = 'p')]
@@ -99,48 +99,48 @@ enum AccessCmd {
 }
 
 #[derive(clap::Clap)]
-struct CtrlCmdParser {
+struct PrivateCommandParser {
     #[clap(subcommand)]
-    cmd: CtrlCmd,
+    cmd: PrivateCommand,
 }
 
 #[derive(clap::Clap)]
-enum CtrlCmd {}
+enum PrivateCommand {}
 
-pub struct PlayCommand {
-    cmd: PlayCmd,
+pub struct GuildCommandData {
+    cmd: GuildCommand,
     from: MessageRef,
     guild: u64,
 }
-impl Message for PlayCommand {
+impl Message for GuildCommandData {
     type Result = ();
 }
 
 #[derive(Default)]
-pub struct PlayCommandProcesser;
-impl Actor for PlayCommandProcesser {
+pub struct GuildCommandProcesser;
+impl Actor for GuildCommandProcesser {
     type Context = Context<Self>;
 }
-impl Handler<PlayCommand> for PlayCommandProcesser {
+impl Handler<GuildCommandData> for GuildCommandProcesser {
     type Result = ();
 
     fn handle(
         &mut self,
-        PlayCommand { cmd, from, guild }: PlayCommand,
+        GuildCommandData { cmd, from, guild }: GuildCommandData,
         _: &mut Self::Context,
     ) -> Self::Result {
         match cmd {
-            PlayCmd::Queue { cmd } => match cmd {
-                QueueCmd::Url { url } => Queuer::from_registry()
+            GuildCommand::Queue { cmd } => match cmd {
+                QueueCommand::Url { url } => Queuer::from_registry()
                     .try_send(UrlQueueData { url, from, guild })
                     .expect("failed sending"),
             },
-            PlayCmd::Access { cmd } => {
+            GuildCommand::Control { cmd } => {
                 let kind = match cmd {
-                    AccessCmd::Join { channel } => ActionKind::Join { channel },
-                    AccessCmd::Play => ActionKind::Play,
-                    AccessCmd::Stop => ActionKind::Stop,
-                    AccessCmd::Leave => ActionKind::Leave,
+                    ControlCommand::Join { channel } => ActionKind::Join { channel },
+                    ControlCommand::Play => ActionKind::Play,
+                    ControlCommand::Stop => ActionKind::Stop,
+                    ControlCommand::Leave => ActionKind::Leave,
                 };
 
                 Connector::from_registry()
@@ -150,5 +150,5 @@ impl Handler<PlayCommand> for PlayCommandProcesser {
         }
     }
 }
-impl Supervised for PlayCommandProcesser {}
-impl ArbiterService for PlayCommandProcesser {}
+impl Supervised for GuildCommandProcesser {}
+impl ArbiterService for GuildCommandProcesser {}
