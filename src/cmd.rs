@@ -1,4 +1,4 @@
-use actix::prelude::*;
+use actix::prelude::{Actor, ArbiterService, Context, Handler, Message, Supervised};
 use url::Url;
 
 use crate::connection::{Action, ActionKind, Connector, Queuer, UrlQueueData};

@@ -1,4 +1,7 @@
-use actix::prelude::*;
+use actix::prelude::{
+    Actor, ArbiterService, AsyncContext, Context, ContextFutureSpawner, Handler, Message,
+    Supervised, WrapFuture,
+};
 use futures_util::StreamExt;
 use twilight_http::Client;
 use twilight_model::gateway::event::Event;
@@ -55,7 +58,7 @@ impl Actor for Gateway {
                             channel: mc.0.channel_id.0,
                         },
                         user: mc.0.author.id.0,
-                        guild: mc.0.guild_id.map(|i| i.0)
+                        guild: mc.0.guild_id.map(|i| i.0),
                     }
                     .pipe(|m| addr.try_send(m).expect("failed sending"));
                 }
@@ -83,7 +86,7 @@ impl Handler<GatewayMessage> for Gateway {
                 content,
                 from,
                 user,
-                guild
+                guild,
             })
             .expect("failed sending")
     }
