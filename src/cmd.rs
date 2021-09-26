@@ -1,7 +1,7 @@
 use actix::prelude::*;
 use url::Url;
 
-use crate::connection::{Action, ActionKind, Connector, UrlQueue, UrlQueueData};
+use crate::connection::{Action, ActionKind, Connector, Queuer, UrlQueueData};
 use crate::gateway::{MessageRef, RawCommand};
 use crate::util::reply_err;
 
@@ -131,7 +131,7 @@ impl Handler<PlayCommand> for PlayCommandProcesser {
     ) -> Self::Result {
         match cmd {
             PlayCmd::Queue { cmd } => match cmd {
-                QueueCmd::Url { url } => UrlQueue::from_registry()
+                QueueCmd::Url { url } => Queuer::from_registry()
                     .try_send(UrlQueueData { url, from, guild })
                     .expect("failed sending"),
             },

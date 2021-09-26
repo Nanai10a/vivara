@@ -20,11 +20,11 @@ use crate::gateway;
 use crate::util::{reply, reply_err, token, Pipe};
 
 #[derive(Default)]
-pub struct UrlQueue;
-impl Actor for UrlQueue {
+pub struct Queuer;
+impl Actor for Queuer {
     type Context = Context<Self>;
 }
-impl Handler<UrlQueueData> for UrlQueue {
+impl Handler<UrlQueueData> for Queuer {
     type Result = ();
 
     fn handle(
@@ -55,8 +55,8 @@ impl Handler<UrlQueueData> for UrlQueue {
             .wait(ctx)
     }
 }
-impl Supervised for UrlQueue {}
-impl ArbiterService for UrlQueue {}
+impl Supervised for Queuer {}
+impl ArbiterService for Queuer {}
 
 pub struct UrlQueueData {
     pub from: gateway::MessageRef,
