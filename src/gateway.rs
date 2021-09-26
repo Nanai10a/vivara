@@ -141,7 +141,7 @@ impl Handler<Reply> for Responder {
             .pipe(|f| async {
                 match f.await {
                     Ok(_) => (),
-                    Err(e) => tracing::warn!("failed sending response: {}", e),
+                    Err(e) => tracing::error!("failed sending response: {}", e),
                 };
             })
             .into_actor(self)
