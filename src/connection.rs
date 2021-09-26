@@ -14,9 +14,10 @@ use songbird::tracks::TrackHandle;
 use songbird::{Call, Songbird};
 use tokio::sync::Mutex;
 use twilight_gateway::cluster::Events;
+use twilight_gateway::{Cluster, Intents};
 use url::Url;
 
-use crate::gateway;
+use crate::gateway::MessageRef;
 use crate::util::{reply, reply_err, token, Pipe};
 
 #[derive(Default)]
@@ -59,7 +60,7 @@ impl Supervised for Queuer {}
 impl ArbiterService for Queuer {}
 
 pub struct UrlQueueData {
-    pub from: gateway::MessageRef,
+    pub from: MessageRef,
     pub guild: u64,
     pub url: Url,
 }
@@ -187,7 +188,7 @@ impl ArbiterService for Connector {}
 
 pub struct Action {
     pub kind: ActionKind,
-    pub from: gateway::MessageRef,
+    pub from: MessageRef,
     pub guild: u64,
 }
 
@@ -202,7 +203,7 @@ impl Message for Action {
 }
 
 struct QueueData {
-    from: gateway::MessageRef,
+    from: MessageRef,
     guild: u64,
     input: Input,
 }
@@ -217,12 +218,7 @@ struct Caller {
 impl Caller {
     async fn init() -> (Songbird, Events) {
         let (cluster, events) = loop {
-            match twilight_gateway::Cluster::new(
-                token::<String>(),
-                twilight_gateway::Intents::GUILD_VOICE_STATES,
-            )
-            .await
-            {
+            match Cluster::new(token::<String>(), Intents::GUILD_VOICE_STATES).await {
                 Ok(t) => break t,
                 Err(e) => tracing::warn!("failed initializing cluster: {}", e),
             }
