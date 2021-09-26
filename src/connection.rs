@@ -2,8 +2,11 @@ use alloc::sync::Arc;
 use std::thread::spawn;
 
 use actix::fut::wrap_future;
-use actix::prelude::*;
-use dashmap::DashMap;
+use actix::prelude::{
+    Actor, ActorFutureExt, ArbiterService, Context, ContextFutureSpawner, Handler, Message,
+    Supervised,
+};
+use dashmap::{DashMap, Map};
 use futures_util::StreamExt;
 use songbird::input::cached::Memory;
 use songbird::input::Input;
@@ -32,17 +35,20 @@ impl Handler<UrlQueueData> for UrlQueue {
         songbird::ytdl(url)
             .pipe(wrap_future::<_, Self>)
             .map(move |res, _, _| {
-                let input = match res {
-                    Ok(o) => o,
-                    Err(e) => return reply_err(e, from),
+                let result: Result<(), String> = try {
+                    let input = res.map_err(|e| e.to_string())?;
+
+                    let input = Memory::new(input)
+                        .map(|m| m.try_into())
+                        .flatten()
+                        .map_err(|e| e.to_string())?;
+
+                    Connector::from_registry().do_send(QueueData { guild, from, input })
                 };
 
-                let input = match Memory::new(input).map(|m| m.try_into()).flatten() {
-                    Ok(o) => o,
-                    Err(e) => return reply_err(e, from),
-                };
-
-                Connector::from_registry().do_send(QueueData { guild, from, input });
+                if let Err(e) = result {
+                    reply_err(e, from)
+                }
             })
             .wait(ctx)
     }
@@ -86,55 +92,56 @@ impl Handler<Action> for Connector {
             let key = Arc::as_ptr(&arc) as usize;
             let mut guard = arc.lock().await;
 
-            use ActionKind::*;
-            match kind {
-                Join { channel } => {
-                    let join = match guard.join(channel.into()).await {
-                        Ok(o) => o,
-                        Err(e) => return reply_err(e, from),
-                    };
+            let result: Result<&str, String> = try {
+                use ActionKind::*;
+                match kind {
+                    Join { channel } => {
+                        let join = guard
+                            .join(channel.into())
+                            .await
+                            .map_err(|e| e.to_string())?;
 
-                    drop(guard);
+                        drop(guard);
 
-                    if let Err(e) = join.await {
-                        return reply_err(e, from);
-                    }
+                        join.await.map_err(|e| e.to_string())?;
 
-                    reply("joined", from);
-                },
-                Play => {
-                    let input = match queues.get_mut(&key) {
-                        None => return reply_err("queue is empty", from),
-                        Some(mut vec) => match vec.len() {
-                            0 => return reply_err("queue is empty", from),
-                            _ => vec.remove(0),
-                        },
-                    };
+                        "joined"
+                    },
+                    Play => {
+                        let input = match queues.get_mut(&key) {
+                            None => Err("queue is empty")?,
+                            Some(mut vec) => match vec.len() {
+                                0 => Err("queue is empty")?,
+                                _ => vec.remove(0),
+                            },
+                        };
 
-                    let handle = guard.play_source(input);
-                    handles.insert(key, handle);
+                        let handle = guard.play_source(input);
+                        handles.insert(key, handle);
 
-                    reply("playing", from);
-                },
-                Stop => {
-                    let handle = match handles.get(&key) {
-                        Some(h) => h,
-                        None => return reply_err("not playing", from),
-                    };
+                        "playing"
+                    },
+                    Stop => {
+                        let handle = match handles.get(&key) {
+                            Some(h) => h,
+                            None => Err("not playing")?,
+                        };
 
-                    if let Err(e) = handle.stop() {
-                        return reply_err(e, from);
-                    }
+                        handle.stop().map_err(|e| e.to_string())?;
 
-                    reply("stopped", from);
-                },
-                Leave => {
-                    if let Err(e) = guard.leave().await {
-                        return reply_err(e, from);
-                    }
+                        "stopped"
+                    },
+                    Leave => guard
+                        .leave()
+                        .await
+                        .map_err(|e| e.to_string())?
+                        .pipe(|()| "leaved"),
+                }
+            };
 
-                    reply("leaved", from);
-                },
+            match result {
+                Ok(o) => reply(o, from),
+                Err(e) => reply_err(e, from),
             }
         }
         .pipe(wrap_future::<_, Self>)
@@ -155,28 +162,15 @@ impl Handler<QueueData> for Connector {
             Caller::from_registry()
                 .send(CallRequest { guild })
                 .await
-                .pipe(|r| match r {
-                    Ok(o) => (&o).pipe(Arc::as_ptr).pipe(|p| p as usize).pipe(Some),
-                    Err(e) => gateway::get_reply_recipient()
-                        .do_send(gateway::Reply {
-                            msg: e.to_string(),
-                            kind: gateway::Kind::Err,
-                            to: from,
-                        })
-                        .unwrap()
-                        .pipe(|()| None),
-                })
+                .unwrap()
+                .pipe(|a| Arc::as_ptr(&a))
+                .pipe(|p| p as usize)
+                .pipe(Some)
         }
         .pipe(wrap_future::<_, Self>)
         .map(move |opt, _, _| {
             if let Some(key) = opt {
-                let mut queue = match queues.get_mut(&key) {
-                    Some(v) => v,
-                    None => {
-                        queues.insert(key, vec![]);
-                        queues.get_mut(&key).unwrap()
-                    },
-                };
+                let mut queue = queues._entry(key).or_default();
 
                 queue.push(input);
 
@@ -235,15 +229,30 @@ impl Caller {
 
         cluster.up().await;
 
-        let user_id = twilight_http::Client::new(token())
-            .current_user()
-            .exec()
-            .await
-            .unwrap()
-            .model()
-            .await
-            .unwrap()
-            .id;
+        let user_id = loop {
+            let result = twilight_http::Client::new(token())
+                .current_user()
+                .exec()
+                .await;
+
+            let response = match result {
+                Ok(o) => o,
+                Err(e) => {
+                    tracing::warn!("initialize error: {}", e);
+                    continue;
+                },
+            };
+
+            let user = match response.model().await {
+                Ok(o) => o,
+                Err(e) => {
+                    tracing::warn!("initialize error: {}", e);
+                    continue;
+                },
+            };
+
+            break user.id;
+        };
 
         (Songbird::twilight(cluster, user_id), events)
     }
