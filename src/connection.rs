@@ -185,7 +185,6 @@ impl Handler<QueueData> for Connector {
 impl Supervised for Connector {}
 impl ArbiterService for Connector {}
 
-#[non_exhaustive]
 pub struct Action {
     pub kind: ActionKind,
     pub from: gateway::MsgRef,
