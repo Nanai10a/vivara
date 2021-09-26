@@ -45,7 +45,7 @@ impl Actor for Gateway {
                 Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES,
             )
             .await
-            .unwrap();
+            .expect("failed building cluster");
 
             clu.up().await;
 
@@ -133,7 +133,7 @@ impl Handler<Reply> for Responder {
         self.client
             .create_message(channel.into())
             .content(&format!("{}:\n{}", kind, msg))
-            .unwrap()
+            .expect("illegal message")
             .reply(message.into())
             .exec()
             .pipe(|f| async {

@@ -88,7 +88,7 @@ impl Handler<Action> for Connector {
             let arc = Caller::from_registry()
                 .send(CallRequest { guild })
                 .await
-                .unwrap();
+                .expect("failed sending");
             let key = Arc::as_ptr(&arc) as usize;
             let mut guard = arc.lock().await;
 
@@ -162,7 +162,7 @@ impl Handler<QueueData> for Connector {
             Caller::from_registry()
                 .send(CallRequest { guild })
                 .await
-                .unwrap()
+                .expect("failed sending")
                 .pipe(|a| Arc::as_ptr(&a))
                 .pipe(|p| p as usize)
                 .pipe(Some)
@@ -262,7 +262,7 @@ impl Default for Caller {
         let handle = tokio::runtime::Handle::current();
         let (songbird, events) = spawn(move || handle.block_on(async { Self::init().await }))
             .join()
-            .unwrap();
+            .expect("failed joining thread");
 
         Self {
             songbird: Arc::new(songbird),
@@ -275,7 +275,7 @@ impl Actor for Caller {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         let arc = self.songbird.clone();
-        let mut events = self.events.take().unwrap();
+        let mut events = self.events.take().expect("must be found value");
 
         async move {
             while let Some((id, event)) = events.next().await {

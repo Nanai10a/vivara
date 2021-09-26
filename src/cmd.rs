@@ -30,24 +30,23 @@ impl Handler<RawCommand> for CommandParser {
         }
 
         use clap::Clap;
-        if from.is_dm() {
-            let _ = try_handle!(CtrlCmdParser::try_parse_from(split);
-                to = from;
-                match = CtrlCmdParser { cmd } => cmd
-            );
+        match from.guild() {
+            None => {
+                let _ = try_handle!(CtrlCmdParser::try_parse_from(split);
+                    to = from;
+                    match = CtrlCmdParser { cmd } => cmd
+                );
 
-            unimplemented!();
-        } else {
-            let cmd = try_handle!(PlayCmdParser::try_parse_from(split);
-                to = from;
-                match = PlayCmdParser { cmd } => cmd
-            );
+                unimplemented!();
+            },
+            Some(guild) => {
+                let cmd = try_handle!(PlayCmdParser::try_parse_from(split);
+                    to = from;
+                    match = PlayCmdParser { cmd } => cmd
+                );
 
-            PlayCommandProcesser::from_registry().do_send(PlayCommand {
-                cmd,
-                guild: from.guild().unwrap(),
-                from,
-            });
+                PlayCommandProcesser::from_registry().do_send(PlayCommand { cmd, guild, from });
+            },
         }
     }
 }
@@ -129,20 +128,14 @@ impl Handler<PlayCommand> for PlayCommandProcesser {
                     UrlQueue::from_registry().do_send(UrlQueueData { url, from, guild }),
             },
             PlayCmd::Access { cmd } => {
-
                 let kind = match cmd {
-                AccessCmd::Join { channel } => ActionKind::Join { channel },
-                AccessCmd::Play => ActionKind::Play,
-                AccessCmd::Stop => ActionKind::Stop,
-                AccessCmd::Leave => ActionKind::Leave,
-            };
+                    AccessCmd::Join { channel } => ActionKind::Join { channel },
+                    AccessCmd::Play => ActionKind::Play,
+                    AccessCmd::Stop => ActionKind::Stop,
+                    AccessCmd::Leave => ActionKind::Leave,
+                };
 
-            Connector::from_registry().do_send(
-                Action {
-                    kind,
-                    from,
-                    guild,
-                })
+                Connector::from_registry().do_send(Action { kind, from, guild })
             },
         }
     }

@@ -45,5 +45,7 @@ fn main() {
         tracing::info!("initialized.");
     });
 
-    sys.run().unwrap()
+    if let Err(e) = sys.run() {
+        tracing::error!("system error: {}", e);
+    }
 }
