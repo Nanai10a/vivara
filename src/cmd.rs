@@ -1,6 +1,7 @@
 use actix::prelude::*;
+use url::Url;
 
-use crate::connection::{UrlQueue, UrlQueueData};
+use crate::connection::{Action, ActionKind, Connector, UrlQueue, UrlQueueData};
 use crate::gateway::{MsgRef, RawCommand};
 
 #[derive(Default)]
@@ -61,12 +62,34 @@ struct PlayCmdParser {
 
 #[derive(clap::Clap)]
 enum PlayCmd {
-    /// using url.
-    #[clap(short_flag = 'U')]
-    Url {
-        /// url to youtube's video.
-        url: url::Url,
+    #[clap(short_flag = 'Q')]
+    Queue {
+        #[clap(subcommand)]
+        cmd: QueueCmd,
     },
+    #[clap(short_flag = 'A')]
+    Access {
+        #[clap(subcommand)]
+        cmd: AccessCmd,
+    },
+}
+
+#[derive(clap::Clap)]
+enum QueueCmd {
+    #[clap(short_flag = 'u')]
+    Url { url: Url },
+}
+
+#[derive(clap::Clap)]
+enum AccessCmd {
+    #[clap(short_flag = 'j')]
+    Join { channel: u64 },
+    #[clap(short_flag = 'p')]
+    Play,
+    #[clap(short_flag = 's')]
+    Stop,
+    #[clap(short_flag = 'l')]
+    Leave,
 }
 
 #[derive(clap::Clap)]
@@ -100,11 +123,27 @@ impl Handler<PlayCommand> for PlayCommandProcesser {
         PlayCommand { cmd, from, guild }: PlayCommand,
         _: &mut Self::Context,
     ) -> Self::Result {
-        use PlayCmd::*;
         match cmd {
-            Url { url } => UrlQueue::from_registry().do_send(UrlQueueData { url, from, guild }),
-            #[allow(unreachable_patterns)]
-            _ => unimplemented!("unimplemented command"),
+            PlayCmd::Queue { cmd } => match cmd {
+                QueueCmd::Url { url } =>
+                    UrlQueue::from_registry().do_send(UrlQueueData { url, from, guild }),
+            },
+            PlayCmd::Access { cmd } => {
+
+                let kind = match cmd {
+                AccessCmd::Join { channel } => ActionKind::Join { channel },
+                AccessCmd::Play => ActionKind::Play,
+                AccessCmd::Stop => ActionKind::Stop,
+                AccessCmd::Leave => ActionKind::Leave,
+            };
+
+            Connector::from_registry().do_send(
+                Action {
+                    kind,
+                    from,
+                    guild,
+                })
+            },
         }
     }
 }
