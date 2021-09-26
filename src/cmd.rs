@@ -10,7 +10,6 @@ pub struct CommandParser;
 impl Actor for CommandParser {
     type Context = Context<Self>;
 }
-
 impl Handler<RawCommand> for CommandParser {
     type Result = ();
 
@@ -65,7 +64,6 @@ struct GuildCommandParser {
     #[clap(subcommand)]
     cmd: GuildCommand,
 }
-
 #[derive(clap::Clap)]
 enum GuildCommand {
     #[clap(short_flag = 'Q')]
@@ -79,13 +77,11 @@ enum GuildCommand {
         cmd: ControlCommand,
     },
 }
-
 #[derive(clap::Clap)]
 enum QueueCommand {
     #[clap(short_flag = 'u')]
     Url { url: Url },
 }
-
 #[derive(clap::Clap)]
 enum ControlCommand {
     #[clap(short_flag = 'j')]
@@ -97,13 +93,11 @@ enum ControlCommand {
     #[clap(short_flag = 'l')]
     Leave,
 }
-
 #[derive(clap::Clap)]
 struct PrivateCommandParser {
     #[clap(subcommand)]
     cmd: PrivateCommand,
 }
-
 #[derive(clap::Clap)]
 enum PrivateCommand {}
 

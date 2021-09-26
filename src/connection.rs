@@ -191,7 +191,6 @@ pub struct Action {
     pub from: MessageRef,
     pub guild: u64,
 }
-
 pub enum ActionKind {
     Join { channel: u64 },
     Play,
