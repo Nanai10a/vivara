@@ -57,8 +57,10 @@ where S: ToString {
 
 fn reply_inner<S>(msg: S, kind: crate::gateway::Kind, to: crate::gateway::MsgRef)
 where S: ToString {
-    crate::gateway::get_reply_recipient()
-        .do_send(crate::gateway::Reply {
+    use actix::ArbiterService;
+
+    crate::gateway::Responder::from_registry()
+        .try_send(crate::gateway::Reply {
             msg: msg.to_string(),
             kind,
             to,

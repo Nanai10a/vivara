@@ -27,8 +27,6 @@ impl Message for RawCommand {
     type Result = ();
 }
 
-pub fn get_reply_recipient() -> Recipient<Reply> { Responder::from_registry().recipient() }
-
 #[derive(Default)]
 pub struct Gateway;
 impl Actor for Gateway {
@@ -100,7 +98,8 @@ impl Message for GatewayMessage {
     type Result = ();
 }
 
-struct Responder {
+
+pub struct Responder {
     client: Client,
 }
 impl Default for Responder {
