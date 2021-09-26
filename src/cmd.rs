@@ -43,7 +43,9 @@ impl Handler<RawCommand> for CommandParser {
                     let PlayCmdParser { cmd } =
                         PlayCmdParser::try_parse_from(split).map_err(|e| e.to_string())?;
 
-                    PlayCommandProcesser::from_registry().do_send(PlayCommand { cmd, guild, from });
+                    PlayCommandProcesser::from_registry()
+                        .try_send(PlayCommand { cmd, guild, from })
+                        .expect("failed sending");
                 },
             }
         };
@@ -128,8 +130,9 @@ impl Handler<PlayCommand> for PlayCommandProcesser {
     ) -> Self::Result {
         match cmd {
             PlayCmd::Queue { cmd } => match cmd {
-                QueueCmd::Url { url } =>
-                    UrlQueue::from_registry().do_send(UrlQueueData { url, from, guild }),
+                QueueCmd::Url { url } => UrlQueue::from_registry()
+                    .try_send(UrlQueueData { url, from, guild })
+                    .expect("failed sending"),
             },
             PlayCmd::Access { cmd } => {
                 let kind = match cmd {
@@ -139,7 +142,9 @@ impl Handler<PlayCommand> for PlayCommandProcesser {
                     AccessCmd::Leave => ActionKind::Leave,
                 };
 
-                Connector::from_registry().do_send(Action { kind, from, guild })
+                Connector::from_registry()
+                    .try_send(Action { kind, from, guild })
+                    .expect("failed sending")
             },
         }
     }

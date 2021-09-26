@@ -43,7 +43,9 @@ impl Handler<UrlQueueData> for UrlQueue {
                         .flatten()
                         .map_err(|e| e.to_string())?;
 
-                    Connector::from_registry().do_send(QueueData { guild, from, input })
+                    Connector::from_registry()
+                        .try_send(QueueData { guild, from, input })
+                        .expect("failed sending")
                 };
 
                 if let Err(e) = result {
@@ -246,7 +248,10 @@ impl Caller {
             let user = match response.model().await {
                 Ok(o) => o,
                 Err(e) => {
-                    tracing::warn!("failed deserialization to response of getting current_user: {}", e);
+                    tracing::warn!(
+                        "failed deserialization to response of getting current_user: {}",
+                        e
+                    );
                     continue;
                 },
             };

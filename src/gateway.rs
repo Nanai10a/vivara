@@ -60,7 +60,7 @@ impl Actor for Gateway {
                         },
                         user: mc.0.author.id.0,
                     }
-                    .pipe(|m| addr.do_send(m));
+                    .pipe(|m| addr.try_send(m).expect("failed sending"));
                 }
             }
         }
@@ -80,11 +80,13 @@ impl Handler<GatewayMessage> for Gateway {
         }: GatewayMessage,
         _: &mut Self::Context,
     ) -> Self::Result {
-        CommandParser::from_registry().do_send(RawCommand {
-            content,
-            from,
-            user,
-        })
+        CommandParser::from_registry()
+            .try_send(RawCommand {
+                content,
+                from,
+                user,
+            })
+            .expect("failed sending")
     }
 }
 impl Supervised for Gateway {}

@@ -32,18 +32,6 @@ impl<T> Pass for T {
     }
 }
 
-pub fn do_send_handle<M: core::fmt::Debug>(res: Result<(), actix::prelude::SendError<M>>) {
-    use actix::prelude::SendError::*;
-
-    let (reason, inner) = match res {
-        Ok(_) => return,
-        Err(Full(i)) => ("mailbox is full", i),
-        Err(Closed(i)) => ("cannot reach addr", i),
-    };
-
-    tracing::warn!("failed do_send: {} with: {:?}", reason, inner)
-}
-
 pub fn token<R>() -> R
 where R: From<String> {
     let token = match std::env::var("DISCORD_BOT_TOKEN") {
@@ -75,5 +63,5 @@ where S: ToString {
             kind,
             to,
         })
-        .pipe(do_send_handle)
+        .expect("failed sending")
 }
