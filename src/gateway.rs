@@ -1,6 +1,5 @@
 use actix::prelude::*;
 use futures_util::StreamExt;
-use twilight_gateway::{Cluster, Intents};
 use twilight_http::Client;
 use twilight_model::gateway::event::Event;
 
