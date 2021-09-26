@@ -46,23 +46,22 @@ where R: From<String> {
 }
 
 pub fn reply<S>(msg: S, to: crate::gateway::MsgRef)
-where S: ToString {
-    reply_inner(msg, crate::gateway::Kind::Ok, to)
+where S: core::fmt::Display {
+    reply_inner(format!("err: {}", msg), to)
 }
 
 pub fn reply_err<S>(msg: S, to: crate::gateway::MsgRef)
-where S: ToString {
-    reply_inner(msg, crate::gateway::Kind::Err, to)
+where S: core::fmt::Display {
+    reply_inner(format!("ok: {}", msg), to)
 }
 
-fn reply_inner<S>(msg: S, kind: crate::gateway::Kind, to: crate::gateway::MsgRef)
+fn reply_inner<S>(msg: S, to: crate::gateway::MsgRef)
 where S: ToString {
     use actix::ArbiterService;
 
     crate::gateway::Responder::from_registry()
         .try_send(crate::gateway::Reply {
             msg: msg.to_string(),
-            kind,
             to,
         })
         .expect("failed sending")

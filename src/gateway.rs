@@ -122,7 +122,6 @@ impl Handler<Reply> for Responder {
         &mut self,
         Reply {
             msg,
-            kind,
             to:
                 MsgRef {
                     message,
@@ -134,7 +133,7 @@ impl Handler<Reply> for Responder {
     ) -> Self::Result {
         self.client
             .create_message(channel.into())
-            .content(&format!("{}: {}", kind, msg))
+            .content(&msg)
             .expect("illegal message")
             .reply(message.into())
             .exec()
@@ -154,24 +153,8 @@ impl ArbiterService for Responder {}
 #[derive(Debug, Clone)]
 pub struct Reply {
     pub msg: String,
-    pub kind: Kind,
     pub to: MsgRef,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum Kind {
-    Ok,
-    Err,
 }
 impl Message for Reply {
     type Result = ();
-}
-
-impl core::fmt::Display for Kind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Kind::Ok => write!(f, "ok"),
-            Kind::Err => write!(f, "err"),
-        }
-    }
 }
