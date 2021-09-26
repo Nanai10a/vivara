@@ -4,7 +4,7 @@
 
 extern crate alloc;
 
-mod cmd;
+mod command;
 mod connection;
 mod gateway;
 mod util;

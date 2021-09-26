@@ -6,7 +6,7 @@ use futures_util::StreamExt;
 use twilight_http::Client;
 use twilight_model::gateway::event::Event;
 
-use crate::cmd::CommandParser;
+use crate::command::CommandParser;
 use crate::util::{token, Pipe};
 
 #[derive(Debug, Clone, Copy)]
