@@ -59,7 +59,7 @@ impl Supervised for UrlQueue {}
 impl ArbiterService for UrlQueue {}
 
 pub struct UrlQueueData {
-    pub from: gateway::MsgRef,
+    pub from: gateway::MessageRef,
     pub guild: u64,
     pub url: Url,
 }
@@ -187,7 +187,7 @@ impl ArbiterService for Connector {}
 
 pub struct Action {
     pub kind: ActionKind,
-    pub from: gateway::MsgRef,
+    pub from: gateway::MessageRef,
     pub guild: u64,
 }
 
@@ -202,7 +202,7 @@ impl Message for Action {
 }
 
 struct QueueData {
-    from: gateway::MsgRef,
+    from: gateway::MessageRef,
     guild: u64,
     input: Input,
 }

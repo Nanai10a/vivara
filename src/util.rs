@@ -45,17 +45,17 @@ where R: From<String> {
     token.into()
 }
 
-pub fn reply<S>(msg: S, to: crate::gateway::MsgRef)
+pub fn reply<S>(msg: S, to: crate::gateway::MessageRef)
 where S: core::fmt::Display {
     reply_inner(format!("err: {}", msg), to)
 }
 
-pub fn reply_err<S>(msg: S, to: crate::gateway::MsgRef)
+pub fn reply_err<S>(msg: S, to: crate::gateway::MessageRef)
 where S: core::fmt::Display {
     reply_inner(format!("ok: {}", msg), to)
 }
 
-fn reply_inner<S>(msg: S, to: crate::gateway::MsgRef)
+fn reply_inner<S>(msg: S, to: crate::gateway::MessageRef)
 where S: ToString {
     use actix::ArbiterService;
 

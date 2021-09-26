@@ -7,7 +7,7 @@ use crate::cmd::CommandParser;
 use crate::util::{token, Pipe};
 
 #[derive(Debug, Clone, Copy)]
-pub struct MsgRef {
+pub struct MessageRef {
     message: u64,
     channel: u64,
 }
@@ -15,7 +15,7 @@ pub struct MsgRef {
 #[derive(Debug, Clone)]
 pub struct RawCommand {
     pub content: String,
-    pub from: MsgRef,
+    pub from: MessageRef,
     pub guild: Option<u64>,
     pub user: u64,
 }
@@ -50,7 +50,7 @@ impl Actor for Gateway {
                 if let Event::MessageCreate(mc) = e {
                     GatewayMessage {
                         content: mc.0.content,
-                        from: MsgRef {
+                        from: MessageRef {
                             message: mc.0.id.0,
                             channel: mc.0.channel_id.0,
                         },
@@ -93,7 +93,7 @@ impl ArbiterService for Gateway {}
 
 struct GatewayMessage {
     content: String,
-    from: MsgRef,
+    from: MessageRef,
     guild: Option<u64>,
     user: u64,
 }
@@ -122,7 +122,7 @@ impl Handler<Reply> for Responder {
         &mut self,
         Reply {
             msg,
-            to: MsgRef { message, channel },
+            to: MessageRef { message, channel },
         }: Reply,
         ctx: &mut Self::Context,
     ) -> Self::Result {
@@ -148,7 +148,7 @@ impl ArbiterService for Responder {}
 #[derive(Debug, Clone)]
 pub struct Reply {
     pub msg: String,
-    pub to: MsgRef,
+    pub to: MessageRef,
 }
 impl Message for Reply {
     type Result = ();

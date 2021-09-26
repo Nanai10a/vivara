@@ -2,7 +2,7 @@ use actix::prelude::*;
 use url::Url;
 
 use crate::connection::{Action, ActionKind, Connector, UrlQueue, UrlQueueData};
-use crate::gateway::{MsgRef, RawCommand};
+use crate::gateway::{MessageRef, RawCommand};
 use crate::util::reply_err;
 
 #[derive(Default)]
@@ -20,7 +20,7 @@ impl Handler<RawCommand> for CommandParser {
             content,
             from,
             user,
-            guild
+            guild,
         }: RawCommand,
         _: &mut Self::Context,
     ) -> Self::Result {
@@ -109,7 +109,7 @@ enum CtrlCmd {}
 
 pub struct PlayCommand {
     cmd: PlayCmd,
-    from: MsgRef,
+    from: MessageRef,
     guild: u64,
 }
 impl Message for PlayCommand {
