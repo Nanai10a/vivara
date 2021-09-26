@@ -14,8 +14,6 @@ pub struct MsgRef {
     guild: Option<u64>,
 }
 impl MsgRef {
-    pub fn is_dm(&self) -> bool { self.guild.is_none() }
-
     pub fn guild(&self) -> Option<u64> { self.guild }
 }
 
