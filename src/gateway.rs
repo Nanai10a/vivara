@@ -131,7 +131,7 @@ impl Handler<Reply> for Responder {
     ) -> Self::Result {
         self.client
             .create_message(channel.into())
-            .content(&format!("{}:\n{}", kind, msg))
+            .content(&format!("{}: {}", kind, msg))
             .expect("illegal message")
             .reply(message.into())
             .exec()
