@@ -301,6 +301,34 @@ pub enum LoopKind {
     Index(u32),
     Range((Bound<u32>, Bound<u32>)),
 }
+impl Message for ControlAction {
+    type Result = ();
+}
+
+pub struct GetCurrentStatus {
+    pub guild: u64,
+}
+pub struct CurrentStatus {}
+impl Message for GetCurrentStatus {
+    type Result = CurrentStatus;
+}
+
+pub struct GetQueueStatus {
+    pub guild: u64,
+    pub page: u32,
+}
+pub struct QueueStatus {}
+impl Message for GetQueueStatus {
+    type Result = QueueStatus;
+}
+pub struct GetHistoryStatus {
+    pub guild: u64,
+    pub page: u32,
+}
+pub struct HistoryStatus {}
+impl Message for GetHistoryStatus {
+    type Result = HistoryStatus;
+}
 
 struct QueueData {
     input: Input,
