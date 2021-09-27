@@ -144,24 +144,52 @@ impl Handler<GuildCommandData> for GuildCommandProcesser {
         GuildCommandData { cmd, from, guild }: GuildCommandData,
         _: &mut Self::Context,
     ) -> Self::Result {
+        use GuildCommand::*;
         match cmd {
-            GuildCommand::Queue { cmd } => match cmd {
-                QueueCommand::Url { url } => Queuer::from_registry()
-                    .try_send(UrlQueueData { url, from, guild })
-                    .expect("failed sending"),
-            },
-            GuildCommand::Control { cmd } => {
-                let kind = match cmd {
-                    ControlCommand::Join { channel } => ActionKind::Join { channel },
-                    ControlCommand::Play => ActionKind::Play,
-                    ControlCommand::Stop => ActionKind::Stop,
-                    ControlCommand::Leave => ActionKind::Leave,
-                };
+            Join { channel } => Connector::from_registry()
+                .try_send(Action {
+                    kind: ActionKind::Join { channel },
+                    from,
+                    guild,
+                })
+                .expect("failed sending"),
+            Leave => Connector::from_registry()
+                .try_send(Action {
+                    kind: ActionKind::Leave,
+                    from,
+                    guild,
+                })
+                .expect("failed sending"),
 
-                Connector::from_registry()
-                    .try_send(Action { kind, from, guild })
-                    .expect("failed sending")
-            },
+            Enqueue { url } => Queuer::from_registry()
+                .try_send(UrlQueueData { url, from, guild })
+                .expect("failed sending"),
+
+            ShowCurrent => unimplemented!(),
+            ShowQueue { page } => unimplemented!(),
+            ShowHistory { page } => unimplemented!(),
+
+            Play { url } => Connector::from_registry()
+                .try_send(Action {
+                    kind: ActionKind::Play,
+                    from,
+                    guild,
+                })
+                .expect("failed sending"),
+            Pause => unimplemented!(),
+            Resume => unimplemented!(),
+            Skip { items, range } => unimplemented!(),
+            Loop { index, range } => unimplemented!(),
+            Shuffle => unimplemented!(),
+            Volume { percent } => unimplemented!(),
+            VolumeCurrent { percent } => unimplemented!(),
+            Stop => Connector::from_registry()
+                .try_send(Action {
+                    kind: ActionKind::Stop,
+                    from,
+                    guild,
+                })
+                .expect("failed sending"),
         }
     }
 }
