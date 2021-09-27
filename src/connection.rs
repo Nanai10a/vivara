@@ -1,10 +1,9 @@
 use alloc::sync::Arc;
 use std::thread::spawn;
 
-use actix::fut::wrap_future;
 use actix::prelude::{
     Actor, ActorFutureExt, ArbiterService, Context, ContextFutureSpawner, Handler, Message,
-    Supervised,
+    Supervised, WrapFuture,
 };
 use dashmap::{DashMap, Map};
 use futures_util::StreamExt;
@@ -34,7 +33,7 @@ impl Handler<UrlQueueData> for Queuer {
         ctx: &mut Self::Context,
     ) -> Self::Result {
         songbird::ytdl(url)
-            .pipe(wrap_future::<_, Self>)
+            .into_actor(self)
             .map(move |res, _, _| {
                 let result: Result<(), String> = try {
                     let input = res.map_err(|e| e.to_string())?;
@@ -147,7 +146,7 @@ impl Handler<Action> for Connector {
                 Err(e) => reply_err(e, from),
             }
         }
-        .pipe(wrap_future::<_, Self>)
+        .into_actor(self)
         .spawn(ctx);
     }
 }
@@ -170,7 +169,7 @@ impl Handler<QueueData> for Connector {
                 .pipe(|p| p as usize)
                 .pipe(Some)
         }
-        .pipe(wrap_future::<_, Self>)
+        .into_actor(self)
         .map(move |opt, _, _| {
             if let Some(key) = opt {
                 let mut queue = queues._entry(key).or_default();
@@ -282,7 +281,7 @@ impl Actor for Caller {
                 arc.process(&event).await;
             }
         }
-        .pipe(wrap_future::<_, Self>)
+        .into_actor(self)
         .spawn(ctx);
     }
 }
