@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+use core::ops::Bound;
 use std::thread::spawn;
 
 use actix::prelude::{
@@ -21,6 +22,7 @@ use crate::gateway::MessageRef;
 use crate::util::{reply, reply_err, token, Pipe};
 
 #[derive(Default)]
+#[deprecated]
 pub struct Queuer;
 impl Actor for Queuer {
     type Context = Context<Self>;
@@ -72,6 +74,18 @@ impl Message for UrlQueueData {
 pub struct Connector {
     queues: Arc<DashMap<usize, Vec<Input>>>,
     handles: Arc<DashMap<usize, TrackHandle>>,
+}
+impl Connector {
+    async fn create_track(url: String) -> Result<Input, String> {
+        let source = songbird::ytdl(url).await.map_err(|e| e.to_string())?;
+
+        let input = Memory::new(source)
+            .map_err(|e| e.to_string())?
+            .pipe(|m| m.try_into())
+            .map_err(|e: songbird::input::error::Error| e.to_string())?;
+
+        Ok(input)
+    }
 }
 impl Actor for Connector {
     type Context = Context<Self>;
