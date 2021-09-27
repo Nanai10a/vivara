@@ -1149,6 +1149,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "range_parser"
+version = "0.1.0-alpha"
+source = "git+https://github.com/Nanai10a/range_parser.git#6bddb426731c3fae15ad86b4c65c7a4db7b4d469"
+
+[[package]]
 name = "redox_syscall"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1984,6 +1989,7 @@ dependencies = [
  "clap",
  "dashmap",
  "futures-util",
+ "range_parser",
  "shell-words",
  "simd-json",
  "songbird",
