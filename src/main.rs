@@ -1,5 +1,6 @@
 #![feature(try_blocks)]
 #![feature(result_flattening)]
+#![feature(bound_map)]
 #![allow(clippy::unit_arg)]
 
 extern crate alloc;

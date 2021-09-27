@@ -90,29 +90,29 @@ impl Connector {
 impl Actor for Connector {
     type Context = Context<Self>;
 }
-impl Handler<Action> for Connector {
+impl Handler<CallAction> for Connector {
     type Result = ();
 
     fn handle(
         &mut self,
-        Action { kind, from, guild }: Action,
+        CallAction { kind, from, guild }: CallAction,
         ctx: &mut Self::Context,
     ) -> Self::Result {
         let queues = self.queues.clone();
         let handles = self.handles.clone();
 
         async move {
-            let arc = Caller::from_registry()
-                .send(CallRequest { guild })
-                .await
-                .expect("failed sending");
-            let key = Arc::as_ptr(&arc) as usize;
-            let mut guard = arc.lock().await;
-
             let result: Result<&str, String> = try {
-                use ActionKind::*;
+                use CallActionKind::*;
                 match kind {
                     Join { channel } => {
+                        let arc = Caller::from_registry()
+                            .send(DoCall { guild })
+                            .await
+                            .expect("failed sending")
+                            .ok_or("now calling")?;
+                        let mut guard = arc.lock().await;
+
                         let join = guard
                             .join(channel.into())
                             .await
@@ -124,35 +124,147 @@ impl Handler<Action> for Connector {
 
                         "joined"
                     },
-                    Play => {
-                        let input = match queues.get_mut(&key) {
-                            None => Err("queue is empty")?,
-                            Some(mut vec) => match vec.len() {
-                                0 => Err("queue is empty")?,
-                                _ => vec.remove(0),
-                            },
+                    Leave => {
+                        let result = Caller::from_registry()
+                            .send(DeleteCall { guild })
+                            .await
+                            .expect("failed sending");
+
+                        let (resp, key) = match result {
+                            Ok(Some(k)) => ("leaved", k),
+                            Ok(None) => Err("not calling")?,
+                            Err(e) => Err(e)?,
                         };
 
-                        let handle = guard.play_source(input);
-                        handles.insert(key, handle);
+                        queues.remove(&key);
+                        handles.remove(&key);
 
-                        "playing"
+                        resp
+                    },
+                    Play { url } => {
+                        let arc = Caller::from_registry()
+                            .send(GetCall { guild })
+                            .await
+                            .expect("failed sending")
+                            .ok_or("not calling")?;
+                        let mut guard = arc.lock().await;
+
+                        let key = Arc::as_ptr(&arc) as usize;
+
+                        match (queues.get_mut(&key), handles.get(&key).is_some(), url) {
+                            (None, false, None) => Err("queue is empty")?,
+                            (None, false, Some(url)) => {
+                                queues._entry(key).or_default();
+
+                                let input = Self::create_track(url).await?;
+
+                                let handle = guard.play_source(input);
+                                handles.insert(key, handle);
+
+                                "playing"
+                            },
+                            (None, true, None) => unreachable!("found handle without queue"),
+                            (None, true, Some(_)) =>
+                                unreachable!("found handle and url without queue"),
+                            (Some(mut vec), false, None) => {
+                                if vec.len() == 0 {
+                                    Err("queue is empty")?
+                                }
+
+                                let input = vec.remove(0);
+
+                                let handle = guard.play_source(input);
+                                handles.insert(key, handle);
+
+                                "playing"
+                            },
+                            (Some(mut vec), false, Some(url)) => {
+                                let input = Self::create_track(url).await?;
+
+                                vec.push(input);
+
+                                let input = vec.remove(0);
+
+                                let handle = guard.play_source(input);
+                                handles.insert(key, handle);
+
+                                "playing"
+                            },
+                            (Some(_), true, None) => Err("now playing")?,
+                            (Some(mut vec), true, Some(url)) => {
+                                let input = Self::create_track(url).await?;
+
+                                vec.push(input);
+
+                                "queued"
+                            },
+                        }
+                    },
+                    Skip(kind) => {
+                        let key = Caller::from_registry()
+                            .send(GetCall { guild })
+                            .await
+                            .expect("failed sending")
+                            .ok_or("not calling")?
+                            .pipe(|a| Arc::as_ptr(&a))
+                            .pipe(|p| p as usize);
+
+                        let queue_opt = queues.get_mut(&key);
+                        let queue = match queue_opt {
+                            Some(mut vec) => vec,
+                            None => Err("queue is empty")?,
+                        };
+
+                        use SkipKind::*;
+                        match kind {
+                            Index(index) => {
+                                if !(0..queue.len()).contains(&(index as usize)) {
+                                    Err("out of bounds")?
+                                }
+
+                                queue.remove(index as usize);
+                            },
+                            Range(range) => {
+                                let range =
+                                    (range.0.map(|s| s as usize), range.1.map(|e| e as usize));
+                                let max_items = match range.1 {
+                                    Bound::Included(i) => i + 1,
+                                    Bound::Excluded(i) => i,
+                                    Bound::Unbounded => Err("out of bounds")?,
+                                };
+
+                                if queue.len() < max_items {
+                                    Err("out of bounds")?
+                                }
+
+                                queue.drain(range).count();
+                            },
+                        }
+
+                        "skipped"
                     },
                     Stop => {
-                        let handle = match handles.get(&key) {
-                            Some(h) => h,
-                            None => Err("not playing")?,
-                        };
+                        let key = Caller::from_registry()
+                            .send(GetCall { guild })
+                            .await
+                            .expect("failed sending")
+                            .ok_or("not calling")?
+                            .pipe(|a| Arc::as_ptr(&a))
+                            .pipe(|p| p as usize);
 
-                        handle.stop().map_err(|e| e.to_string())?;
+                        match handles.get(&key) {
+                            Some(h) => h
+                                .stop()
+                                .map_err(|e| e.to_string())?
+                                .pipe(|()| handles.remove(&key))
+                                .pipe(drop),
+                            None => (),
+                        }
+
+                        queues.remove(&key);
 
                         "stopped"
                     },
-                    Leave => guard
-                        .leave()
-                        .await
-                        .map_err(|e| e.to_string())?
-                        .pipe(|()| "leaved"),
                 }
             };
 
@@ -177,12 +289,11 @@ impl Handler<QueueData> for Connector {
 
         async move {
             Caller::from_registry()
-                .send(CallRequest { guild })
+                .send(GetCall { guild })
                 .await
                 .expect("failed sending")
-                .pipe(|a| Arc::as_ptr(&a))
-                .pipe(|p| p as usize)
-                .pipe(Some)
+                .map(|a| Arc::as_ptr(&a))
+                .map(|p| p as usize)
         }
         .into_actor(self)
         .map(move |opt, _, _| {
@@ -192,6 +303,8 @@ impl Handler<QueueData> for Connector {
                 queue.push(input);
 
                 reply("queued", from)
+            } else {
+                reply_err("not calling", from)
             }
         })
         .wait(ctx);
@@ -200,19 +313,43 @@ impl Handler<QueueData> for Connector {
 impl Supervised for Connector {}
 impl ArbiterService for Connector {}
 
-pub struct Action {
-    pub kind: ActionKind,
+pub struct CallAction {
+    pub kind: CallActionKind,
     pub from: MessageRef,
     pub guild: u64,
 }
-pub enum ActionKind {
+pub enum CallActionKind {
     Join { channel: u64 },
-    Play,
-    Stop,
     Leave,
+    Play { url: Option<String> },
+    Skip(SkipKind),
+    Stop,
 }
-impl Message for Action {
+pub enum SkipKind {
+    Index(u32),
+    Range((Bound<u32>, Bound<u32>)),
+}
+impl Message for CallAction {
     type Result = ();
+}
+
+pub struct ControlAction {
+    pub kind: ControlActionKind,
+    pub from: MessageRef,
+    pub guild: u64,
+}
+pub enum ControlActionKind {
+    Queue { url: String },
+    Pause,
+    Resume,
+    Loop(LoopKind),
+    Shuffle,
+    Volume { percent: f32 },
+    VolumeCurrent { percent: f32 },
+}
+pub enum LoopKind {
+    Index(u32),
+    Range((Bound<u32>, Bound<u32>)),
 }
 
 struct QueueData {
@@ -300,6 +437,17 @@ impl Actor for Caller {
         .spawn(ctx);
     }
 }
+impl Handler<DoCall> for Caller {
+    type Result = Option<Arc<Mutex<Call>>>;
+
+    fn handle(&mut self, DoCall { guild }: DoCall, ctx: &mut Self::Context) -> Self::Result {
+        if let None = self.handle(GetCall { guild }, ctx) {
+            self.songbird.get_or_insert(guild.into()).pipe(Some)
+        } else {
+            None
+        }
+    }
+}
 impl Handler<GetCall> for Caller {
     type Result = Option<Arc<Mutex<Call>>>;
 
@@ -308,25 +456,37 @@ impl Handler<GetCall> for Caller {
     }
 }
 impl Handler<DeleteCall> for Caller {
-    type Result = ResponseFuture<Result<bool, String>>;
+    type Result = ResponseFuture<Result<Option<usize>, String>>;
 
     fn handle(&mut self, DeleteCall { guild }: DeleteCall, _: &mut Self::Context) -> Self::Result {
         let songbird = self.songbird.clone();
 
         async move {
+            let key = songbird
+                .get(guild)
+                .map(|a| Arc::as_ptr(&a))
+                .map(|p| p as usize);
+
             match songbird.remove(guild).await {
-                Ok(o) => Ok(true),
+                Ok(o) => Ok(Some(key.expect("why cannot get key?"))),
                 Err(e) => match e {
-                    JoinError::NoCall => Ok(false),
+                    JoinError::NoCall => Ok(None),
                     e => Err(e.to_string()),
                 },
             }
-        }.pipe(Box::pin)
+        }
+        .pipe(Box::pin)
     }
 }
 impl Supervised for Caller {}
 impl ArbiterService for Caller {}
 
+struct DoCall {
+    guild: u64,
+}
+impl Message for DoCall {
+    type Result = Option<Arc<Mutex<Call>>>;
+}
 struct GetCall {
     guild: u64,
 }
@@ -338,5 +498,5 @@ struct DeleteCall {
     guild: u64,
 }
 impl Message for DeleteCall {
-    type Result = Result<bool, String>;
+    type Result = Result<Option<usize>, String>;
 }
