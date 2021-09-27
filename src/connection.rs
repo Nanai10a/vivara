@@ -16,59 +16,9 @@ use songbird::{Call, Songbird};
 use tokio::sync::Mutex;
 use twilight_gateway::cluster::Events;
 use twilight_gateway::{Cluster, Intents};
-use url::Url;
 
 use crate::gateway::MessageRef;
 use crate::util::{reply, reply_err, token, Pipe};
-
-#[derive(Default)]
-#[deprecated]
-pub struct Queuer;
-impl Actor for Queuer {
-    type Context = Context<Self>;
-}
-impl Handler<UrlQueueData> for Queuer {
-    type Result = ();
-
-    fn handle(
-        &mut self,
-        UrlQueueData { url, from, guild }: UrlQueueData,
-        ctx: &mut Self::Context,
-    ) -> Self::Result {
-        songbird::ytdl(url)
-            .into_actor(self)
-            .map(move |res, _, _| {
-                let result: Result<(), String> = try {
-                    let input = res.map_err(|e| e.to_string())?;
-
-                    let input = Memory::new(input)
-                        .map(|m| m.try_into())
-                        .flatten()
-                        .map_err(|e| e.to_string())?;
-
-                    Connector::from_registry()
-                        .try_send(QueueData { guild, from, input })
-                        .expect("failed sending")
-                };
-
-                if let Err(e) = result {
-                    reply_err(e, from)
-                }
-            })
-            .wait(ctx)
-    }
-}
-impl Supervised for Queuer {}
-impl ArbiterService for Queuer {}
-
-pub struct UrlQueueData {
-    pub url: Url,
-    pub from: MessageRef,
-    pub guild: u64,
-}
-impl Message for UrlQueueData {
-    type Result = ();
-}
 
 #[derive(Default)]
 pub struct Connector {
