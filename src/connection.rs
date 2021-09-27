@@ -3,10 +3,11 @@ use std::thread::spawn;
 
 use actix::prelude::{
     Actor, ActorFutureExt, ArbiterService, Context, ContextFutureSpawner, Handler, Message,
-    Supervised, WrapFuture,
+    ResponseFuture, Supervised, WrapFuture,
 };
 use dashmap::{DashMap, Map};
 use futures_util::StreamExt;
+use songbird::error::JoinError;
 use songbird::input::cached::Memory;
 use songbird::input::Input;
 use songbird::tracks::TrackHandle;
@@ -285,23 +286,43 @@ impl Actor for Caller {
         .spawn(ctx);
     }
 }
-impl Handler<CallRequest> for Caller {
-    type Result = Arc<Mutex<Call>>;
+impl Handler<GetCall> for Caller {
+    type Result = Option<Arc<Mutex<Call>>>;
 
-    fn handle(
-        &mut self,
-        CallRequest { guild }: CallRequest,
-        _: &mut Self::Context,
-    ) -> Self::Result {
-        self.songbird.get_or_insert(guild.into())
+    fn handle(&mut self, GetCall { guild }: GetCall, ctx: &mut Self::Context) -> Self::Result {
+        self.songbird.get(guild)
+    }
+}
+impl Handler<DeleteCall> for Caller {
+    type Result = ResponseFuture<Result<bool, String>>;
+
+    fn handle(&mut self, DeleteCall { guild }: DeleteCall, _: &mut Self::Context) -> Self::Result {
+        let songbird = self.songbird.clone();
+
+        async move {
+            match songbird.remove(guild).await {
+                Ok(o) => Ok(true),
+                Err(e) => match e {
+                    JoinError::NoCall => Ok(false),
+                    e => Err(e.to_string()),
+                },
+            }
+        }.pipe(Box::pin)
     }
 }
 impl Supervised for Caller {}
 impl ArbiterService for Caller {}
 
-struct CallRequest {
+struct GetCall {
     guild: u64,
 }
-impl Message for CallRequest {
-    type Result = Arc<Mutex<Call>>;
+impl Message for GetCall {
+    type Result = Option<Arc<Mutex<Call>>>;
+}
+
+struct DeleteCall {
+    guild: u64,
+}
+impl Message for DeleteCall {
+    type Result = Result<bool, String>;
 }
