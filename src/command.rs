@@ -106,10 +106,10 @@ enum GuildCommand {
     },
     Shuffle,
     Volume {
-        percent: u32,
+        percent: f32,
     },
     VolumeCurrent {
-        percent: u32,
+        percent: f32,
     },
     Stop,
 }
