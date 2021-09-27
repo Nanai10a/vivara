@@ -34,7 +34,7 @@ features = ["simd-json"]
 [dependencies.songbird]
 version = "0.2.0"
 default-features = false
-features = ["driver", "gateway", "twilight-rustls", "zlib-simd"]
+features = ["driver", "gateway", "twilight-rustls", "builtin-queue", "zlib-simd"]
 
 [dependencies.simd-json]
 version = "0.4.7"
