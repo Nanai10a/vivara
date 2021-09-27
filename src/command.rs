@@ -1,4 +1,7 @@
+use std::ops::Bound;
+
 use actix::prelude::{Actor, ArbiterService, Context, Handler, Message, Supervised};
+use clap::{ArgGroup, Clap};
 use url::Url;
 
 use crate::connection::{Action, ActionKind, Connector, Queuer, UrlQueueData};
@@ -31,7 +34,6 @@ impl Handler<RawCommand> for CommandParser {
                 _ => return,
             }
 
-            use clap::Clap;
             match guild {
                 None => {
                     let PrivateCommandParser { cmd } =
@@ -59,46 +61,65 @@ impl Handler<RawCommand> for CommandParser {
 impl Supervised for CommandParser {}
 impl ArbiterService for CommandParser {}
 
-#[derive(clap::Clap)]
+#[derive(Clap)]
 struct GuildCommandParser {
     #[clap(subcommand)]
     cmd: GuildCommand,
 }
-#[derive(clap::Clap)]
+#[derive(Clap)]
 enum GuildCommand {
-    #[clap(short_flag = 'Q')]
-    Queue {
-        #[clap(subcommand)]
-        cmd: QueueCommand,
+    Join {
+        channel: u64,
     },
-    #[clap(short_flag = 'C')]
-    Control {
-        #[clap(subcommand)]
-        cmd: ControlCommand,
-    },
-}
-#[derive(clap::Clap)]
-enum QueueCommand {
-    #[clap(short_flag = 'u')]
-    Url { url: Url },
-}
-#[derive(clap::Clap)]
-enum ControlCommand {
-    #[clap(short_flag = 'j')]
-    Join { channel: u64 },
-    #[clap(short_flag = 'p')]
-    Play,
-    #[clap(short_flag = 's')]
-    Stop,
-    #[clap(short_flag = 'l')]
     Leave,
+
+    Enqueue {
+        url: Url,
+    },
+
+    ShowCurrent,
+    ShowQueue {
+        page: Option<u32>,
+    },
+    ShowHistory {
+        page: Option<u32>,
+    },
+
+    Play {
+        url: Option<Url>,
+    },
+    Pause,
+    Resume,
+    #[clap(group = ArgGroup::new("items").required(true))]
+    Skip {
+        #[clap(short = 'i', long, group = "items")]
+        items: Option<u32>,
+        #[clap(short = 'r', long, group = "items", parse(try_from_str = range_parser::parse))]
+        range: Option<(Bound<u32>, Bound<u32>)>,
+    },
+    #[clap(group = ArgGroup::new("items").required(true))]
+    Loop {
+        #[clap(short = 'i', long, group = "items")]
+        index: Option<u32>,
+        #[clap(short = 'r', long, group = "items", parse(try_from_str = range_parser::parse))]
+        range: Option<(Bound<u32>, Bound<u32>)>,
+    },
+    Shuffle,
+    Volume {
+        percent: u32,
+    },
+    VolumeCurrent {
+        percent: u32,
+    },
+    Stop,
 }
-#[derive(clap::Clap)]
+
+#[derive(Clap)]
 struct PrivateCommandParser {
     #[clap(subcommand)]
     cmd: PrivateCommand,
 }
-#[derive(clap::Clap)]
+#[derive(Clap)]
 enum PrivateCommand {}
 
 pub struct GuildCommandData {
