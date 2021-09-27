@@ -4,7 +4,7 @@ use actix::prelude::{Actor, ArbiterService, Context, Handler, Message, Supervise
 use clap::{ArgGroup, Clap};
 use url::Url;
 
-use crate::connection::{Action, ActionKind, Connector, Queuer, UrlQueueData};
+use crate::connection::{CallAction, CallActionKind, Connector, ControlAction, ControlActionKind};
 use crate::gateway::{MessageRef, RawCommand};
 use crate::util::reply_err;
 
@@ -147,22 +147,28 @@ impl Handler<GuildCommandData> for GuildCommandProcesser {
         use GuildCommand::*;
         match cmd {
             Join { channel } => Connector::from_registry()
-                .try_send(Action {
-                    kind: ActionKind::Join { channel },
+                .try_send(CallAction {
+                    kind: CallActionKind::Join { channel },
                     from,
                     guild,
                 })
                 .expect("failed sending"),
             Leave => Connector::from_registry()
-                .try_send(Action {
-                    kind: ActionKind::Leave,
+                .try_send(CallAction {
+                    kind: CallActionKind::Leave,
                     from,
                     guild,
                 })
                 .expect("failed sending"),
 
-            Enqueue { url } => Queuer::from_registry()
-                .try_send(UrlQueueData { url, from, guild })
+            Enqueue { url } => Connector::from_registry()
+                .try_send(ControlAction {
+                    kind: ControlActionKind::Queue {
+                        url: url.to_string(),
+                    },
+                    from,
+                    guild,
+                })
                 .expect("failed sending"),
 
             ShowCurrent => unimplemented!(),
@@ -170,8 +176,10 @@ impl Handler<GuildCommandData> for GuildCommandProcesser {
             ShowHistory { page } => unimplemented!(),
 
             Play { url } => Connector::from_registry()
-                .try_send(Action {
-                    kind: ActionKind::Play,
+                .try_send(CallAction {
+                    kind: CallActionKind::Play {
+                        url: url.map(|u| u.to_string()),
+                    },
                     from,
                     guild,
                 })
@@ -184,8 +192,8 @@ impl Handler<GuildCommandData> for GuildCommandProcesser {
             Volume { percent } => unimplemented!(),
             VolumeCurrent { percent } => unimplemented!(),
             Stop => Connector::from_registry()
-                .try_send(Action {
-                    kind: ActionKind::Stop,
+                .try_send(CallAction {
+                    kind: CallActionKind::Stop,
                     from,
                     guild,
                 })
