@@ -168,15 +168,13 @@ impl Handler<CallAction> for Connector {
                         use SkipKind::*;
                         match kind {
                             Index(index) => {
-                                if !(0..queue.len()).contains(&(index as usize)) {
+                                if !(0..queue.len()).contains(&index) {
                                     Err("out of bounds")?
                                 }
 
-                                queue.remove(index as usize);
+                                queue.remove(index);
                             },
                             Range(range) => {
-                                let range =
-                                    (range.0.map(|s| s as usize), range.1.map(|e| e as usize));
                                 let max_items = match range.1 {
                                     Bound::Included(i) => i + 1,
                                     Bound::Excluded(i) => i,
@@ -276,8 +274,8 @@ pub enum CallActionKind {
     Stop,
 }
 pub enum SkipKind {
-    Index(u32),
-    Range((Bound<u32>, Bound<u32>)),
+    Index(usize),
+    Range((Bound<usize>, Bound<usize>)),
 }
 impl Message for CallAction {
     type Result = ();
@@ -298,8 +296,8 @@ pub enum ControlActionKind {
     VolumeCurrent { percent: f32 },
 }
 pub enum LoopKind {
-    Index(u32),
-    Range((Bound<u32>, Bound<u32>)),
+    Index(usize),
+    Range((Bound<usize>, Bound<usize>)),
 }
 impl Message for ControlAction {
     type Result = ();

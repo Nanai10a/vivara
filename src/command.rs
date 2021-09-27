@@ -93,16 +93,16 @@ enum GuildCommand {
     #[clap(group = ArgGroup::new("items").required(true))]
     Skip {
         #[clap(short = 'i', long, group = "items")]
-        items: Option<u32>,
+        items: Option<usize>,
         #[clap(short = 'r', long, group = "items", parse(try_from_str = range_parser::parse))]
-        range: Option<(Bound<u32>, Bound<u32>)>,
+        range: Option<(Bound<usize>, Bound<usize>)>,
     },
     #[clap(group = ArgGroup::new("items").required(true))]
     Loop {
         #[clap(short = 'i', long, group = "items")]
-        index: Option<u32>,
+        index: Option<usize>,
         #[clap(short = 'r', long, group = "items", parse(try_from_str = range_parser::parse))]
-        range: Option<(Bound<u32>, Bound<u32>)>,
+        range: Option<(Bound<usize>, Bound<usize>)>,
     },
     Shuffle,
     Volume {
