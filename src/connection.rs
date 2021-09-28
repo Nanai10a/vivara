@@ -394,7 +394,8 @@ impl Connector {
     }
 
     async fn _fix(songbird: Arc<Songbird>, guild: GuildId) -> Result<String, String> {
-        unimplemented!()
+        // TODO
+        "no operated".to_string().pipe(Ok)
     }
 
     async fn stop(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> Result<String, String> {
