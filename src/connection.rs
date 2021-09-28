@@ -289,7 +289,29 @@ impl Connector {
         from: usize,
         to: usize,
     ) -> Result<String, String> {
-        unimplemented!()
+        let call = match songbird.get(guild) {
+            Some(c) => c,
+            None => return Err(JoinError::NoCall.to_string()),
+        };
+
+        let result = call.lock().await.queue().modify_queue(|deq| {
+            if deq.len() > from {
+                return false;
+            }
+
+            let target = deq.remove(from).expect("must removable");
+            let afters = deq.drain(to..).collect::<Vec<_>>();
+
+            deq.push_back(target);
+            deq.append(&mut afters.into());
+
+            true
+        });
+
+        match result {
+            true => "slided".to_string().pipe(Ok),
+            false => "out of bounds".to_string().pipe(Err),
+        }
     }
 
     async fn drop(
