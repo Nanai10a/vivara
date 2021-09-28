@@ -1,21 +1,38 @@
-- join (ch)                                   effect:songbird,connector
-- leave                     // uncomplete     effect:songbird,connector
-- queue:url (url)                             effect:connector
+- join (ch)                                      effect:songbird,connector
+- leave                     // uncomplete        effect:songbird,connector
+- queue:url (url)                                effect:connector
+  - integrated with "play"
 
-- show:current                                read:connector
-- show:queue [page(1)]                        read:connector
-- show:history [page(1)]                      read:connector
+- show:current                                   read:connector
+- show:queue [page(1)]                           read:connector
+- show:history [page(1)]                         read:connector
 
-- play [url]                // added option   effect:songbird,connector
-- pause                                       effect:connector
-- resume                                      effect:connector
-- skip [items(1) or range]                    effect:songbird,connector
-- loop [index(0) or range]                    effect:connector
-- shuffle                                     effect:connector
-- volume (value)                              effect:connector
-- volume_current (value)                      effect:connector
-- stop                                        effect:songbird,connector
+- pause                                          effect:connector
+- resume                                         effect:connector
+- move (from) (to)                               effect:songbird,connector
+- skip [items(1) or range]                       effect:songbird,connector
+  - clear queue: "skip --range .."
+- loop [index(0) or range]  // plan some patch?  effect:connector
+- shuffle                                        effect:connector
+- volume (value)                                 effect:connector
+- volume_current (value)                         effect:connector
+- fix                       // no planned        effect:songbird,connector
+- seek (absolute or relative)
+- stop                                           effect:songbird,connector
 
 effect:connector           ControlAction
 effect:songbird,connector  CallAction
 read:connector             GetStatus
+
+- time specifier
+  - schema
+    - "[+-]?(%dy)?(%dM)?(%dd)?..."
+  - units
+    - y(ear)          >>  y
+    - M(onth)         >>  M
+    - d(ay)           >>  d
+    - h(our)          >>  h
+    - m(inute)        >>  m
+    - s(econd)        >>  s
+    - m(illi)s(econd) >> ms
+    - n(ano)s(econd)  >> ns
