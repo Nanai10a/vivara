@@ -270,6 +270,23 @@ impl Connector {
 
         Ok("leaved".to_string())
     }
+
+    async fn stop(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> Result<String, String> {
+        let guild = guild.into();
+
+        Self::_stop(songbird, guild).await
+    }
+
+    async fn _stop(songbird: Arc<Songbird>, guild: GuildId) -> Result<String, String> {
+        let call = match songbird.get(guild) {
+            Some(c) => c,
+            None => return Err(JoinError::NoCall.to_string()),
+        };
+
+        call.lock().await.queue().stop();
+
+        Ok("stopped".to_string())
+    }
 }
 
 impl Handler<QueueData> for Connector {
