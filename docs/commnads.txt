@@ -14,8 +14,7 @@
   - clear queue: "skip --range .."
 - loop [index(0) or range]  // plan some patch?  effect:connector
 - shuffle                                        effect:connector
-- volume (value)                                 effect:connector
-- volume_current (value)                         effect:connector
+- volume (value) [is_only_current(false)]        effect:connector
 - fix                       // no planned        effect:songbird,connector
 - seek (absolute or relative)
 - stop                                           effect:songbird,connector
