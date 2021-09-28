@@ -1,3 +1,4 @@
+use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::ops::Bound;
 use std::thread::spawn;
@@ -306,7 +307,62 @@ impl Connector {
         guild: GuildId,
         kind: DropKind,
     ) -> Result<String, String> {
-        unimplemented!()
+        enum Either<L, R> {
+            Left(L),
+            Right(R),
+        }
+        impl<L, R, I, O> FnOnce<I> for Either<L, R>
+        where
+            L: FnOnce<I, Output = O>,
+            R: FnOnce<I, Output = O>,
+        {
+            type Output = O;
+
+            extern "rust-call" fn call_once(self, i: I) -> Self::Output {
+                match self {
+                    Self::Left(l) => l.call_once(i),
+                    Self::Right(r) => r.call_once(i),
+                }
+            }
+        }
+
+        let call = match songbird.get(guild) {
+            Some(c) => c,
+            None => return Err(JoinError::NoCall.to_string()),
+        };
+
+        use DropKind::*;
+        let func = match kind {
+            Index(index) => (move |deq: &mut VecDeque<_>| match deq.remove(index) {
+                Some(_) => true,
+                None => false,
+            })
+            .pipe(Either::Left),
+            Range(range) => (move |deq: &mut VecDeque<_>| {
+                use Bound::*;
+                let end = match range.1 {
+                    Unbounded => return false,
+                    Included(e) => e + 1,
+                    Excluded(e) => e,
+                };
+
+                if end > deq.len() {
+                    return false;
+                }
+
+                deq.drain(range).for_each(drop);
+
+                true
+            })
+            .pipe(Either::Right),
+        };
+
+        let result = call.lock().await.queue().modify_queue(func);
+
+        match result {
+            true => "dropped".to_string().pipe(Ok),
+            false => "out of bounds".to_string().pipe(Err),
+        }
     }
 
     async fn fix(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> Result<String, String> {
