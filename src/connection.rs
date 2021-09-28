@@ -269,11 +269,12 @@ pub struct CallAction {
 pub enum CallActionKind {
     Join { channel: u64 },
     Leave,
-    Play { url: Option<String> },
-    Skip(SkipKind),
+    Slide { from: usize, to: usize },
+    Drop { kind: DropKind },
+    Fix,
     Stop,
 }
-pub enum SkipKind {
+pub enum DropKind {
     Index(usize),
     Range((Bound<usize>, Bound<usize>)),
 }
@@ -287,17 +288,13 @@ pub struct ControlAction {
     pub guild: u64,
 }
 pub enum ControlActionKind {
-    Queue { url: String },
+    Enqueue { url: String },
     Pause,
     Resume,
-    Loop(LoopKind),
+    Loop,
     Shuffle,
     Volume { percent: f32 },
     VolumeCurrent { percent: f32 },
-}
-pub enum LoopKind {
-    Index(usize),
-    Range((Bound<usize>, Bound<usize>)),
 }
 impl Message for ControlAction {
     type Result = ();
