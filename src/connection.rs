@@ -9,6 +9,7 @@ use actix::prelude::{
 use dashmap::{DashMap, Map};
 use futures_util::StreamExt;
 use songbird::error::JoinError;
+use songbird::id::{ChannelId, GuildId};
 use songbird::input::cached::Memory;
 use songbird::input::Input;
 use songbird::tracks::TrackHandle;
@@ -225,6 +226,38 @@ impl Handler<CallAction> for Connector {
         .spawn(ctx);
     }
 }
+impl Connector {
+    async fn join(
+        songbird: Arc<Songbird>,
+        guild: impl Into<GuildId>,
+        channel: impl Into<ChannelId>,
+    ) -> Result<String, String> {
+        let guild = guild.into();
+        let channel = channel.into();
+
+        Self::_join(songbird, guild, channel).await
+    }
+
+    async fn _join(
+        songbird: Arc<Songbird>,
+        guild: GuildId,
+        channel: ChannelId,
+    ) -> Result<String, String> {
+        let _: Option<()> = try {
+            let current = songbird.get(guild)?.lock().await.current_channel()?;
+            if current == channel.into() {
+                return Err("already joined".to_string());
+            }
+        };
+
+        if let (_, Err(e)) = songbird.join(guild, channel).await {
+            return Err(e.to_string());
+        }
+
+        Ok("joined".to_string())
+    }
+}
+
 impl Handler<QueueData> for Connector {
     type Result = ();
 
