@@ -80,6 +80,16 @@ impl Connector {
 
         Ok(input)
     }
+
+    async fn try_get_call(
+        songbird: &Arc<Songbird>,
+        guild: GuildId,
+    ) -> Result<Arc<Mutex<Call>>, String> {
+        match songbird.get(guild) {
+            Some(call) => Ok(call),
+            None => Err(JoinError::NoCall.to_string()),
+        }
+    }
 }
 impl Default for Connector {
     fn default() -> Self {
@@ -199,10 +209,7 @@ impl Connector {
         from: usize,
         to: usize,
     ) -> StringResult {
-        let call = match songbird.get(guild) {
-            Some(c) => c,
-            None => return Err(JoinError::NoCall.to_string()),
-        };
+        let call = Self::try_get_call(&songbird, guild).await?;
 
         let result = call.lock().await.queue().modify_queue(|deq| {
             if deq.len() > from {
@@ -254,10 +261,7 @@ impl Connector {
             }
         }
 
-        let call = match songbird.get(guild) {
-            Some(c) => c,
-            None => return Err(JoinError::NoCall.to_string()),
-        };
+        let call = Self::try_get_call(&songbird, guild).await?;
 
         use DropKind::*;
         let func = match kind {
@@ -311,10 +315,7 @@ impl Connector {
     }
 
     async fn _stop(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
-        let call = match songbird.get(guild) {
-            Some(c) => c,
-            None => return Err(JoinError::NoCall.to_string()),
-        };
+        let call = Self::try_get_call(&songbird, guild).await?;
 
         call.lock().await.queue().stop();
 
