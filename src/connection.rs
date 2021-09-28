@@ -256,6 +256,20 @@ impl Connector {
 
         Ok("joined".to_string())
     }
+
+    async fn leave(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> Result<String, String> {
+        let guild = guild.into();
+
+        Self::_leave(songbird, guild).await
+    }
+
+    async fn _leave(songbird: Arc<Songbird>, guild: GuildId) -> Result<String, String> {
+        if let Err(e) = songbird.remove(guild).await {
+            return Err(e.to_string());
+        }
+
+        Ok("leaved".to_string())
+    }
 }
 
 impl Handler<QueueData> for Connector {
