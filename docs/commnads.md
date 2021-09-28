@@ -1,6 +1,6 @@
 - join (ch)                                      effect:songbird,connector
 - leave                                          effect:songbird,connector
-- queue:url (url)                                effect:connector
+- enqueue:url (url)                              effect:connector
   - integrated with "play"
 
 - show:current                                   read:connector
@@ -9,8 +9,8 @@
 
 - pause                                          effect:connector
 - resume                                         effect:connector
-- move (from) (to)                               effect:songbird,connector
-- skip [items(1) or range]                       effect:songbird,connector
+- slide (from) (to)                              effect:songbird,connector
+- drop [items(1) or range]                       effect:songbird,connector
   - clear queue: "skip --range .."
 - loop [index(0) or range]  // plan some patch?  effect:connector
 - shuffle                                        effect:connector
