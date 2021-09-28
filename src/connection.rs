@@ -22,6 +22,8 @@ use twilight_gateway::{Cluster, Intents};
 use crate::gateway::MessageRef;
 use crate::util::{reply, reply_err, token, Pipe};
 
+type StringResult = Result<String, String>;
+
 pub struct Connector {
     songbird: Arc<Songbird>,
     _events: Option<Events>,
@@ -144,18 +146,14 @@ impl Connector {
         songbird: Arc<Songbird>,
         guild: impl Into<GuildId>,
         channel: impl Into<ChannelId>,
-    ) -> Result<String, String> {
+    ) -> StringResult {
         let guild = guild.into();
         let channel = channel.into();
 
         Self::_join(songbird, guild, channel).await
     }
 
-    async fn _join(
-        songbird: Arc<Songbird>,
-        guild: GuildId,
-        channel: ChannelId,
-    ) -> Result<String, String> {
+    async fn _join(songbird: Arc<Songbird>, guild: GuildId, channel: ChannelId) -> StringResult {
         let _: Option<()> = try {
             let current = songbird.get(guild)?.lock().await.current_channel()?;
             if current == channel.into() {
@@ -170,13 +168,13 @@ impl Connector {
         Ok("joined".to_string())
     }
 
-    async fn leave(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> Result<String, String> {
+    async fn leave(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
         let guild = guild.into();
 
         Self::_leave(songbird, guild).await
     }
 
-    async fn _leave(songbird: Arc<Songbird>, guild: GuildId) -> Result<String, String> {
+    async fn _leave(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
         if let Err(e) = songbird.remove(guild).await {
             return Err(e.to_string());
         }
@@ -189,7 +187,7 @@ impl Connector {
         guild: impl Into<GuildId>,
         from: usize,
         to: usize,
-    ) -> Result<String, String> {
+    ) -> StringResult {
         let guild = guild.into();
 
         Self::_slide(songbird, guild, from, to).await
@@ -200,7 +198,7 @@ impl Connector {
         guild: GuildId,
         from: usize,
         to: usize,
-    ) -> Result<String, String> {
+    ) -> StringResult {
         let call = match songbird.get(guild) {
             Some(c) => c,
             None => return Err(JoinError::NoCall.to_string()),
@@ -230,17 +228,13 @@ impl Connector {
         songbird: Arc<Songbird>,
         guild: impl Into<GuildId>,
         kind: DropKind,
-    ) -> Result<String, String> {
+    ) -> StringResult {
         let guild = guild.into();
 
         Self::_drop(songbird, guild, kind).await
     }
 
-    async fn _drop(
-        songbird: Arc<Songbird>,
-        guild: GuildId,
-        kind: DropKind,
-    ) -> Result<String, String> {
+    async fn _drop(songbird: Arc<Songbird>, guild: GuildId, kind: DropKind) -> StringResult {
         enum Either<L, R> {
             Left(L),
             Right(R),
@@ -299,24 +293,24 @@ impl Connector {
         }
     }
 
-    async fn fix(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> Result<String, String> {
+    async fn fix(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
         let guild = guild.into();
 
         Self::_fix(songbird, guild).await
     }
 
-    async fn _fix(songbird: Arc<Songbird>, guild: GuildId) -> Result<String, String> {
+    async fn _fix(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
         // TODO
         "no operated".to_string().pipe(Ok)
     }
 
-    async fn stop(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> Result<String, String> {
+    async fn stop(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
         let guild = guild.into();
 
         Self::_stop(songbird, guild).await
     }
 
-    async fn _stop(songbird: Arc<Songbird>, guild: GuildId) -> Result<String, String> {
+    async fn _stop(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
         let call = match songbird.get(guild) {
             Some(c) => c,
             None => return Err(JoinError::NoCall.to_string()),
