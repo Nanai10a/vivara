@@ -27,7 +27,6 @@ pub struct Connector {
     _events: Option<Events>,
 }
 impl Connector {
-    // FIXME: do generalize
     async fn init() -> (Songbird, Events) {
         let (cluster, events) = loop {
             match Cluster::new(token::<String>(), Intents::GUILD_VOICE_STATES).await {
