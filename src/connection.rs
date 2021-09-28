@@ -271,6 +271,54 @@ impl Connector {
         Ok("leaved".to_string())
     }
 
+    async fn slide(
+        songbird: Arc<Songbird>,
+        guild: impl Into<GuildId>,
+        from: usize,
+        to: usize,
+    ) -> Result<String, String> {
+        let guild = guild.into();
+
+        Self::_slide(songbird, guild, from, to).await
+    }
+
+    async fn _slide(
+        songbird: Arc<Songbird>,
+        guild: GuildId,
+        from: usize,
+        to: usize,
+    ) -> Result<String, String> {
+        unimplemented!()
+    }
+
+    async fn drop(
+        songbird: Arc<Songbird>,
+        guild: impl Into<GuildId>,
+        kind: DropKind,
+    ) -> Result<String, String> {
+        let guild = guild.into();
+
+        Self::_drop(songbird, guild, kind).await
+    }
+
+    async fn _drop(
+        songbird: Arc<Songbird>,
+        guild: GuildId,
+        kind: DropKind,
+    ) -> Result<String, String> {
+        unimplemented!()
+    }
+
+    async fn fix(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> Result<String, String> {
+        let guild = guild.into();
+
+        Self::_fix(songbird, guild).await
+    }
+
+    async fn _fix(songbird: Arc<Songbird>, guild: GuildId) -> Result<String, String> {
+        unimplemented!()
+    }
+
     async fn stop(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> Result<String, String> {
         let guild = guild.into();
 
