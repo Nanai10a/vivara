@@ -321,6 +321,78 @@ impl Connector {
         Ok("stopped".to_string())
     }
 }
+impl Handler<ControlAction> for Connector {
+    type Result = ();
+
+    fn handle(
+        &mut self,
+        ControlAction { kind, from, guild }: ControlAction,
+        ctx: &mut Self::Context,
+    ) -> Self::Result {
+        unimplemented!()
+    }
+}
+impl Connector {
+    async fn enqueue(
+        songbird: Arc<Songbird>,
+        guild: impl Into<GuildId>,
+        url: String,
+    ) -> StringResult {
+        let guild = guild.into();
+
+        Self::_enqueue(songbird, guild, url).await
+    }
+
+    async fn _enqueue(songbird: Arc<Songbird>, guild: GuildId, url: String) -> StringResult {
+        unimplemented!()
+    }
+
+    async fn pause(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
+        let guild = guild.into();
+
+        Self::_pause(songbird, guild).await
+    }
+
+    async fn _pause(songbird: Arc<Songbird>, guild: GuildId) -> StringResult { unimplemented!() }
+
+    async fn resume(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
+        let guild = guild.into();
+
+        Self::_resume(songbird, guild).await
+    }
+
+    async fn _resume(songbird: Arc<Songbird>, guild: GuildId) -> StringResult { unimplemented!() }
+
+    async fn r#loop(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
+        let guild = guild.into();
+
+        Self::_loop(songbird, guild).await
+    }
+
+    async fn _loop(songbird: Arc<Songbird>, guild: GuildId) -> StringResult { unimplemented!() }
+
+    async fn shuffle(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
+        let guild = guild.into();
+
+        Self::_shuffle(songbird, guild).await
+    }
+
+    async fn _shuffle(songbird: Arc<Songbird>, guild: GuildId) -> StringResult { unimplemented!() }
+
+    async fn volume(
+        songbird: Arc<Songbird>,
+        guild: impl Into<GuildId>,
+        current_only: bool,
+    ) -> StringResult {
+        let guild = guild.into();
+
+        Self::_volume(songbird, guild, current_only).await
+    }
+
+    async fn _volume(songbird: Arc<Songbird>, guild: GuildId, current_only: bool) -> StringResult {
+        unimplemented!()
+    }
+}
 impl Supervised for Connector {}
 impl ArbiterService for Connector {}
 
