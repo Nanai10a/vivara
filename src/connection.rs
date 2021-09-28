@@ -328,40 +328,6 @@ impl Connector {
         Ok("stopped".to_string())
     }
 }
-
-impl Handler<QueueData> for Connector {
-    type Result = ();
-
-    fn handle(
-        &mut self,
-        QueueData { guild, from, input }: QueueData,
-        ctx: &mut Self::Context,
-    ) -> Self::Result {
-        let queues = self.queues.clone();
-
-        async move {
-            Caller::from_registry()
-                .send(GetCall { guild })
-                .await
-                .expect("failed sending")
-                .map(|a| Arc::as_ptr(&a))
-                .map(|p| p as usize)
-        }
-        .into_actor(self)
-        .map(move |opt, _, _| {
-            if let Some(key) = opt {
-                let mut queue = queues._entry(key).or_default();
-
-                queue.push(input);
-
-                reply("queued", from)
-            } else {
-                reply_err("not calling", from)
-            }
-        })
-        .wait(ctx);
-    }
-}
 impl Supervised for Connector {}
 impl ArbiterService for Connector {}
 
@@ -395,10 +361,9 @@ pub enum ControlActionKind {
     Enqueue { url: String },
     Pause,
     Resume,
-    Loop,
+    Loop, // FIXME: uncomplete
     Shuffle,
-    Volume { percent: f32 },
-    VolumeCurrent { percent: f32 },
+    Volume { percent: f32, current_only: bool },
 }
 impl Message for ControlAction {
     type Result = ();
@@ -428,13 +393,3 @@ pub struct HistoryStatus {}
 impl Message for GetHistoryStatus {
     type Result = HistoryStatus;
 }
-
-struct QueueData {
-    input: Input,
-    from: MessageRef,
-    guild: u64,
-}
-impl Message for QueueData {
-    type Result = ();
-}
-
