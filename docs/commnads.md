@@ -1,5 +1,5 @@
 - join (ch)                                      effect:songbird,connector
-- leave                     // uncomplete        effect:songbird,connector
+- leave                                          effect:songbird,connector
 - queue:url (url)                                effect:connector
   - integrated with "play"
 
