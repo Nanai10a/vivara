@@ -361,7 +361,30 @@ impl Handler<ControlAction> for Connector {
         ControlAction { kind, from, guild }: ControlAction,
         ctx: &mut Self::Context,
     ) -> Self::Result {
-        unimplemented!()
+        let songbird = self.songbird.clone();
+        let default_volumes = self.default_volumes.clone();
+
+        async move {
+            use ControlActionKind::*;
+            let result = match kind {
+                Enqueue { url } => Self::enqueue(songbird, default_volumes, guild, url).await,
+                Pause => Self::pause(songbird, guild).await,
+                Resume => Self::resume(songbird, guild).await,
+                Loop => Self::r#loop(songbird, guild).await,
+                Shuffle => Self::shuffle(songbird, guild).await,
+                Volume {
+                    percent,
+                    current_only,
+                } => Self::volume(songbird, default_volumes, guild, percent, current_only).await,
+            };
+
+            match result {
+                Ok(o) => reply(o, from),
+                Err(e) => reply(e, from),
+            }
+        }
+        .into_actor(self)
+        .spawn(ctx);
     }
 }
 impl Connector {
