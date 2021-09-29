@@ -13,7 +13,7 @@ use songbird::error::JoinError;
 use songbird::id::{ChannelId, GuildId};
 use songbird::input::cached::Memory;
 use songbird::input::{ytdl, Input};
-use songbird::tracks::TrackHandle;
+use songbird::tracks::{LoopState, TrackHandle};
 use songbird::{create_player, Call, Songbird};
 use tokio::sync::Mutex;
 use twilight_gateway::cluster::Events;
@@ -398,7 +398,26 @@ impl Connector {
         Self::_loop(songbird, guild).await
     }
 
-    async fn _loop(songbird: Arc<Songbird>, guild: GuildId) -> StringResult { unimplemented!() }
+    async fn _loop(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
+        let call = Self::try_get_call(&songbird, guild)?;
+        let guard = call.lock().await;
+
+        let handle = Self::try_get_handle(&guard, guild)?;
+        let state = handle.get_info().await.map_err(|e| e.to_string())?.loops;
+
+        use LoopState::*;
+        match state {
+            Finite(0) => handle
+                .enable_loop()
+                .map_err(|e| e.to_string())
+                .map(|()| "setted loop".to_string()),
+
+            Finite(_) | Infinite => handle
+                .disable_loop()
+                .map_err(|e| e.to_string())
+                .map(|()| "unsetted loop".to_string()),
+        }
+    }
 
     async fn shuffle(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
         let guild = guild.into();
