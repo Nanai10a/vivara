@@ -81,7 +81,7 @@ impl Connector {
         Ok(input)
     }
 
-    async fn try_get_call(
+    fn try_get_call(
         songbird: &Arc<Songbird>,
         guild: GuildId,
     ) -> Result<Arc<Mutex<Call>>, String> {
@@ -216,7 +216,7 @@ impl Connector {
         from: usize,
         to: usize,
     ) -> StringResult {
-        let call = Self::try_get_call(&songbird, guild).await?;
+        let call = Self::try_get_call(&songbird, guild)?;
 
         let result = call.lock().await.queue().modify_queue(|deq| {
             if deq.len() > from {
@@ -268,7 +268,7 @@ impl Connector {
             }
         }
 
-        let call = Self::try_get_call(&songbird, guild).await?;
+        let call = Self::try_get_call(&songbird, guild)?;
 
         use DropKind::*;
         let func = match kind {
@@ -322,7 +322,7 @@ impl Connector {
     }
 
     async fn _stop(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
-        let call = Self::try_get_call(&songbird, guild).await?;
+        let call = Self::try_get_call(&songbird, guild)?;
 
         call.lock().await.queue().stop();
 
@@ -352,7 +352,7 @@ impl Connector {
     }
 
     async fn _enqueue(songbird: Arc<Songbird>, guild: GuildId, url: String) -> StringResult {
-        let call = Self::try_get_call(&songbird, guild).await?;
+        let call = Self::try_get_call(&songbird, guild)?;
 
         let source = ytdl(url).await.map_err(|e| e.to_string())?;
 
@@ -368,7 +368,7 @@ impl Connector {
     }
 
     async fn _pause(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
-        let call = Self::try_get_call(&songbird, guild).await?;
+        let call = Self::try_get_call(&songbird, guild)?;
         let guard = call.lock().await;
 
         let handle = Self::try_get_handle(&guard, guild)?;
