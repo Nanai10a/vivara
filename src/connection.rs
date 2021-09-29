@@ -9,6 +9,8 @@ use actix::prelude::{
 };
 use dashmap::{DashMap, Map};
 use futures_util::StreamExt;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use songbird::error::JoinError;
 use songbird::id::{ChannelId, GuildId};
 use songbird::input::cached::Memory;
@@ -425,7 +427,16 @@ impl Connector {
         Self::_shuffle(songbird, guild).await
     }
 
-    async fn _shuffle(songbird: Arc<Songbird>, guild: GuildId) -> StringResult { unimplemented!() }
+    async fn _shuffle(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
+        let call = Self::try_get_call(&songbird, guild)?;
+        let guard = call.lock().await;
+
+        guard
+            .queue()
+            .modify_queue(|deq| deq.make_contiguous().shuffle(&mut thread_rng()));
+
+        "shuffled".to_string().pipe(Ok)
+    }
 
     async fn volume(
         songbird: Arc<Songbird>,
