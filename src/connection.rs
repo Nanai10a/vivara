@@ -81,10 +81,7 @@ impl Connector {
         Ok(input)
     }
 
-    fn try_get_call(
-        songbird: &Arc<Songbird>,
-        guild: GuildId,
-    ) -> Result<Arc<Mutex<Call>>, String> {
+    fn try_get_call(songbird: &Arc<Songbird>, guild: GuildId) -> Result<Arc<Mutex<Call>>, String> {
         match songbird.get(guild) {
             Some(call) => Ok(call),
             None => Err(JoinError::NoCall.to_string()),
