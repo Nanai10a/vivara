@@ -29,6 +29,7 @@ type StringResult = Result<String, String>;
 pub struct Connector {
     songbird: Arc<Songbird>,
     _events: Option<Events>,
+    default_volumes: Arc<DashMap<u64, f32>>,
 }
 impl Connector {
     async fn init() -> (Songbird, Events) {
@@ -107,6 +108,7 @@ impl Default for Connector {
         Self {
             songbird: Arc::new(songbird),
             _events: events.pipe(Some),
+            default_volumes: DashMap::new().pipe(Arc::new),
         }
     }
 }
@@ -136,12 +138,13 @@ impl Handler<CallAction> for Connector {
         ctx: &mut Self::Context,
     ) -> Self::Result {
         let songbird = self.songbird.clone();
+        let default_volumes = self.default_volumes.clone();
 
         async move {
             use CallActionKind::*;
             let result = match kind {
-                Join { channel } => Self::join(songbird, guild, channel).await,
-                Leave => Self::leave(songbird, guild).await,
+                Join { channel } => Self::join(songbird, default_volumes, guild, channel).await,
+                Leave => Self::leave(songbird, default_volumes, guild).await,
                 Slide { from, to } => Self::slide(songbird, guild, from, to).await,
                 Drop { kind } => Self::drop(songbird, guild, kind).await,
                 Fix => Self::fix(songbird, guild).await,
@@ -160,16 +163,22 @@ impl Handler<CallAction> for Connector {
 impl Connector {
     async fn join(
         songbird: Arc<Songbird>,
+        default_volumes: Arc<DashMap<u64, f32>>,
         guild: impl Into<GuildId>,
         channel: impl Into<ChannelId>,
     ) -> StringResult {
         let guild = guild.into();
         let channel = channel.into();
 
-        Self::_join(songbird, guild, channel).await
+        Self::_join(songbird, default_volumes, guild, channel).await
     }
 
-    async fn _join(songbird: Arc<Songbird>, guild: GuildId, channel: ChannelId) -> StringResult {
+    async fn _join(
+        songbird: Arc<Songbird>,
+        default_volumes: Arc<DashMap<u64, f32>>,
+        guild: GuildId,
+        channel: ChannelId,
+    ) -> StringResult {
         let _: Option<()> = try {
             let current = songbird.get(guild)?.lock().await.current_channel()?;
             if current == channel.into() {
@@ -181,18 +190,34 @@ impl Connector {
             return Err(e.to_string());
         }
 
+        if let Some(_) = default_volumes.insert(guild.0, 1.0) {
+            unreachable!("must empty value");
+        }
+
         Ok("joined".to_string())
     }
 
-    async fn leave(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
+    async fn leave(
+        songbird: Arc<Songbird>,
+        default_volumes: Arc<DashMap<u64, f32>>,
+        guild: impl Into<GuildId>,
+    ) -> StringResult {
         let guild = guild.into();
 
-        Self::_leave(songbird, guild).await
+        Self::_leave(songbird, default_volumes, guild).await
     }
 
-    async fn _leave(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
+    async fn _leave(
+        songbird: Arc<Songbird>,
+        default_volumes: Arc<DashMap<u64, f32>>,
+        guild: GuildId,
+    ) -> StringResult {
         if let Err(e) = songbird.remove(guild).await {
             return Err(e.to_string());
+        }
+
+        if let None = default_volumes.remove(&guild.0) {
+            unreachable!("must remove value");
         }
 
         Ok("leaved".to_string())
@@ -342,20 +367,31 @@ impl Handler<ControlAction> for Connector {
 impl Connector {
     async fn enqueue(
         songbird: Arc<Songbird>,
+        default_volumes: Arc<DashMap<u64, f32>>,
         guild: impl Into<GuildId>,
         url: String,
     ) -> StringResult {
         let guild = guild.into();
 
-        Self::_enqueue(songbird, guild, url).await
+        Self::_enqueue(songbird, default_volumes, guild, url).await
     }
 
-    async fn _enqueue(songbird: Arc<Songbird>, guild: GuildId, url: String) -> StringResult {
+    async fn _enqueue(
+        songbird: Arc<Songbird>,
+        default_volumes: Arc<DashMap<u64, f32>>,
+        guild: GuildId,
+        url: String,
+    ) -> StringResult {
         let call = Self::try_get_call(&songbird, guild)?;
+        let default_volume = *default_volumes.get(&guild.0).expect("must get value");
 
         let source = ytdl(url).await.map_err(|e| e.to_string())?;
+        let (track, handle) = create_player(source);
+        handle
+            .set_volume(default_volume)
+            .map_err(|e| e.to_string())?;
 
-        call.lock().await.enqueue_source(source);
+        call.lock().await.enqueue(track);
 
         "enqueued".to_string().pipe(Ok)
     }
@@ -440,16 +476,56 @@ impl Connector {
 
     async fn volume(
         songbird: Arc<Songbird>,
+        default_volumes: Arc<DashMap<u64, f32>>,
         guild: impl Into<GuildId>,
+        volume: f32,
         current_only: bool,
     ) -> StringResult {
         let guild = guild.into();
 
-        Self::_volume(songbird, guild, current_only).await
+        Self::_volume(songbird, default_volumes, guild, volume, current_only).await
     }
 
-    async fn _volume(songbird: Arc<Songbird>, guild: GuildId, current_only: bool) -> StringResult {
-        unimplemented!()
+    async fn _volume(
+        songbird: Arc<Songbird>,
+        default_volumes: Arc<DashMap<u64, f32>>,
+        guild: GuildId,
+        volume: f32,
+        current_only: bool,
+    ) -> StringResult {
+        let call = Self::try_get_call(&songbird, guild)?;
+        let guard = call.lock().await;
+
+        if current_only {
+            let handle = Self::try_get_handle(&guard, guild)?;
+            handle.set_volume(volume).map_err(|e| e.to_string())?;
+
+            "changed volume"
+        } else {
+            *default_volumes.get_mut(&guild.0).expect("must get value") = volume;
+
+            let results = guard.queue().modify_queue(|deq| {
+                deq.iter()
+                    .map(|h| h.set_volume(volume))
+                    .filter_map(|r| r.err())
+                    .map(|e| e.to_string())
+                    .collect::<Vec<_>>()
+            });
+
+            if results.len() != 0 {
+                let mut buf = String::new();
+                results
+                    .into_iter()
+                    .enumerate()
+                    .for_each(|(i, e)| buf += &format!("{}: {}", i, e));
+
+                return Err(buf);
+            }
+
+            "changed default volume"
+        }
+        .to_string()
+        .pipe(Ok)
     }
 }
 impl Supervised for Connector {}
