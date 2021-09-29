@@ -345,7 +345,13 @@ impl Connector {
     }
 
     async fn _enqueue(songbird: Arc<Songbird>, guild: GuildId, url: String) -> StringResult {
-        unimplemented!()
+        let call = Self::try_get_call(&songbird, guild).await?;
+
+        let source = ytdl(url).await.map_err(|e| e.to_string())?;
+
+        call.lock().await.enqueue_source(source);
+
+        "enqueued".to_string().pipe(Ok)
     }
 
     async fn pause(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
