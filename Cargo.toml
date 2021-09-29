@@ -18,6 +18,7 @@ url = "2.2.2"
 shell-words = "1.0.0"
 dashmap = "4.0.2"
 range_parser = { git = "https://github.com/Nanai10a/range_parser.git" }
+rand = "0.8.4"
 
 [dependencies.tokio]
 version = "1.12.0"

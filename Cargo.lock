@@ -1989,6 +1989,7 @@ dependencies = [
  "clap",
  "dashmap",
  "futures-util",
+ "rand",
  "range_parser",
  "shell-words",
  "simd-json",
