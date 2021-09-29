@@ -90,6 +90,13 @@ impl Connector {
             None => Err(JoinError::NoCall.to_string()),
         }
     }
+
+    fn try_get_handle(call: &Call, guild: GuildId) -> Result<TrackHandle, String> {
+        match call.queue().current() {
+            Some(th) => th.pipe(Ok),
+            None => JoinError::NoCall.to_string().pipe(Err),
+        }
+    }
 }
 impl Default for Connector {
     fn default() -> Self {
@@ -360,7 +367,16 @@ impl Connector {
         Self::_pause(songbird, guild).await
     }
 
-    async fn _pause(songbird: Arc<Songbird>, guild: GuildId) -> StringResult { unimplemented!() }
+    async fn _pause(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
+        let call = Self::try_get_call(&songbird, guild).await?;
+        let guard = call.lock().await;
+
+        let handle = Self::try_get_handle(&guard, guild)?;
+
+        handle.pause().map_err(|e| e.to_string())?;
+
+        "paused".to_string().pipe(Ok)
+    }
 
     async fn resume(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
         let guild = guild.into();
