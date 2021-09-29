@@ -384,7 +384,16 @@ impl Connector {
         Self::_resume(songbird, guild).await
     }
 
-    async fn _resume(songbird: Arc<Songbird>, guild: GuildId) -> StringResult { unimplemented!() }
+    async fn _resume(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
+        let call = Self::try_get_call(&songbird, guild)?;
+        let guard = call.lock().await;
+
+        let handle = Self::try_get_handle(&guard, guild)?;
+
+        handle.play().map_err(|e| e.to_string())?;
+
+        "resumed".to_string().pipe(Ok)
+    }
 
     async fn r#loop(songbird: Arc<Songbird>, guild: impl Into<GuildId>) -> StringResult {
         let guild = guild.into();
