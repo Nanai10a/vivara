@@ -598,7 +598,7 @@ impl Handler<GetQueueStatus> for Connector {
                 let call = Self::try_get_call(&songbird, guild.into())?;
                 let guard = call.lock().await;
 
-                let queue = guard
+                let mut queue = guard
                     .queue()
                     .current_queue()
                     .into_iter()
