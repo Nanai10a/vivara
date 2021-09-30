@@ -15,7 +15,7 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use songbird::error::JoinError;
 use songbird::id::{ChannelId, GuildId};
-use songbird::input::ytdl;
+use songbird::input::Restartable;
 use songbird::tracks::{LoopState, PlayMode, TrackHandle, TrackState};
 use songbird::{create_player, Call, Songbird};
 use tokio::sync::Mutex;
@@ -397,7 +397,10 @@ impl Connector {
         let call = Self::try_get_call(&songbird, guild)?;
         let default_volume = *default_volumes.get(&guild.0).expect("must get value");
 
-        let source = ytdl(url).await.map_err(|e| e.to_string())?;
+        let source = Restartable::ytdl(url, true)
+            .await
+            .map_err(|e| e.to_string())?
+            .into();
         let (track, handle) = create_player(source);
         handle
             .set_volume(default_volume)
