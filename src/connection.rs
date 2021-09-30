@@ -194,7 +194,7 @@ impl Connector {
             return Err(e.to_string());
         }
 
-        if let Some(_) = default_volumes.insert(guild.0, 1.0) {
+        if default_volumes.insert(guild.0, 1.0).is_some() {
             unreachable!("must empty value");
         }
 
@@ -220,7 +220,7 @@ impl Connector {
             return Err(e.to_string());
         }
 
-        if let None = default_volumes.remove(&guild.0) {
+        if default_volumes.remove(&guild.0).is_none() {
             unreachable!("must remove value");
         }
 
@@ -300,11 +300,8 @@ impl Connector {
 
         use DropKind::*;
         let func = match kind {
-            Index(index) => (move |deq: &mut VecDeque<_>| match deq.remove(index) {
-                Some(_) => true,
-                None => false,
-            })
-            .pipe(Either::Left),
+            Index(index) =>
+                (move |deq: &mut VecDeque<_>| deq.remove(index).is_some()).pipe(Either::Left),
             Range(range) => (move |deq: &mut VecDeque<_>| {
                 use Bound::*;
                 let end = match range.1 {
