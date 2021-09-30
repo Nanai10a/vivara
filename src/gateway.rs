@@ -1,18 +1,15 @@
 use actix::prelude::{
-    Actor, ArbiterService, AsyncContext, Context, ContextFutureSpawner, Handler, Message,
-    Supervised, WrapFuture,
+    Actor, ArbiterService, Context, ContextFutureSpawner, Handler, Message, Supervised, WrapFuture,
 };
-use futures_util::StreamExt;
 use twilight_http::Client;
-use twilight_model::gateway::event::Event;
 
 use crate::command::CommandParser;
 use crate::util::{token, Pipe};
 
 #[derive(Debug, Clone, Copy)]
 pub struct MessageRef {
-    message: u64,
-    channel: u64,
+    pub message: u64,
+    pub channel: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -30,43 +27,6 @@ impl Message for RawCommand {
 pub struct Gateway;
 impl Actor for Gateway {
     type Context = Context<Self>;
-
-    fn started(&mut self, ctx: &mut Self::Context) {
-        let addr = ctx.address();
-
-        async move {
-            let (cluster, mut events) = loop {
-                match twilight_gateway::Cluster::new(
-                    token::<String>(),
-                    twilight_gateway::Intents::GUILD_VOICE_STATES,
-                )
-                .await
-                {
-                    Ok(t) => break t,
-                    Err(e) => tracing::warn!("failed initializing cluster: {}", e),
-                }
-            };
-
-            cluster.up().await;
-
-            while let Some((_, e)) = events.next().await {
-                if let Event::MessageCreate(mc) = e {
-                    GatewayMessage {
-                        content: mc.0.content,
-                        from: MessageRef {
-                            message: mc.0.id.0,
-                            channel: mc.0.channel_id.0,
-                        },
-                        user: mc.0.author.id.0,
-                        guild: mc.0.guild_id.map(|i| i.0),
-                    }
-                    .pipe(|m| addr.try_send(m).expect("failed sending"));
-                }
-            }
-        }
-        .into_actor(self)
-        .spawn(ctx)
-    }
 }
 impl Handler<GatewayMessage> for Gateway {
     type Result = ();
@@ -94,11 +54,11 @@ impl Handler<GatewayMessage> for Gateway {
 impl Supervised for Gateway {}
 impl ArbiterService for Gateway {}
 
-struct GatewayMessage {
-    content: String,
-    user: u64,
-    from: MessageRef,
-    guild: Option<u64>,
+pub struct GatewayMessage {
+    pub content: String,
+    pub user: u64,
+    pub from: MessageRef,
+    pub guild: Option<u64>,
 }
 
 impl Message for GatewayMessage {

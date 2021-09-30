@@ -3,14 +3,12 @@ use alloc::sync::Arc;
 use core::fmt::Display;
 use core::ops::Bound;
 use core::time::Duration;
-use std::thread::spawn;
 
 use actix::prelude::{
     Actor, ArbiterService, Context, ContextFutureSpawner, Handler, Message, ResponseFuture,
     Supervised, WrapFuture,
 };
 use dashmap::DashMap;
-use futures_util::StreamExt;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use songbird::error::JoinError;
@@ -19,60 +17,24 @@ use songbird::input::Restartable;
 use songbird::tracks::{LoopState, PlayMode, TrackHandle, TrackState};
 use songbird::{create_player, Call, Songbird};
 use tokio::sync::Mutex;
-use twilight_gateway::cluster::Events;
-use twilight_gateway::{Cluster, Intents};
 
 use crate::gateway::MessageRef;
-use crate::util::{reply, reply_err, token, Pipe};
+use crate::util::{reply, reply_err, Pipe};
 
 type StringResult = Result<String, String>;
 
 pub struct Connector {
     songbird: Arc<Songbird>,
-    _events: Option<Events>,
     default_volumes: Arc<DashMap<u64, f32>>,
     history: Arc<DashMap<u64, Vec<TrackInfo>>>,
 }
 impl Connector {
-    async fn init() -> (Songbird, Events) {
-        let (cluster, events) = loop {
-            match Cluster::new(token::<String>(), Intents::GUILD_VOICE_STATES).await {
-                Ok(t) => break t,
-                Err(e) => tracing::warn!("failed initializing cluster: {}", e),
-            }
-        };
-
-        cluster.up().await;
-
-        let user_id = loop {
-            let result = twilight_http::Client::new(token())
-                .current_user()
-                .exec()
-                .await;
-
-            let response = match result {
-                Ok(o) => o,
-                Err(e) => {
-                    tracing::warn!("failed getting current_user: {}", e);
-                    continue;
-                },
-            };
-
-            let user = match response.model().await {
-                Ok(o) => o,
-                Err(e) => {
-                    tracing::warn!(
-                        "failed deserialization to response of getting current_user: {}",
-                        e
-                    );
-                    continue;
-                },
-            };
-
-            break user.id;
-        };
-
-        (Songbird::twilight(cluster, user_id), events)
+    pub fn new(songbird: Arc<Songbird>) -> Self {
+        Self {
+            songbird,
+            default_volumes: DashMap::new().pipe(Arc::new),
+            history: DashMap::new().pipe(Arc::new),
+        }
     }
 
     fn try_get_call(songbird: &Arc<Songbird>, guild: GuildId) -> Result<Arc<Mutex<Call>>, String> {
@@ -90,36 +52,10 @@ impl Connector {
     }
 }
 impl Default for Connector {
-    fn default() -> Self {
-        let handle = tokio::runtime::Handle::current();
-        let (songbird, events) = spawn(move || handle.block_on(async { Self::init().await }))
-            .join()
-            .expect("failed joining thread");
-
-        Self {
-            songbird: Arc::new(songbird),
-            _events: events.pipe(Some),
-            default_volumes: DashMap::new().pipe(Arc::new),
-            history: DashMap::new().pipe(Arc::new),
-        }
-    }
+    fn default() -> Self { panic!("cannot initialize on Default::default") }
 }
 impl Actor for Connector {
     type Context = Context<Self>;
-
-    fn started(&mut self, ctx: &mut Self::Context) {
-        let arc = self.songbird.clone();
-        let mut events = self._events.take().expect("must be found value");
-
-        async move {
-            while let Some((id, event)) = events.next().await {
-                tracing::trace!("received event: ({}) {:?}", id, event);
-                arc.process(&event).await;
-            }
-        }
-        .into_actor(self)
-        .spawn(ctx);
-    }
 }
 impl Handler<CallAction> for Connector {
     type Result = ();
