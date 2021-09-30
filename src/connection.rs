@@ -10,7 +10,7 @@ use actix::prelude::{
     Supervised, WrapFuture,
 };
 use dashmap::DashMap;
-use futures_util::{StreamExt, TryFutureExt};
+use futures_util::StreamExt;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use songbird::error::JoinError;
@@ -616,18 +616,12 @@ impl Handler<GetQueueStatus> for Connector {
                 }
                 let paging = start..end;
 
-                let stream = queue
-                    .drain(paging)
-                    .map(|(i, h)| (i, h.get_info()))
-                    .map(|(i, f)| (i, f.map_err(|e| e.to_string())))
-                    .map(|(i, f)| (i, f.map_ok(|s| s.into())));
-
                 let mut ok_vec = vec![];
                 let mut err_vec = vec![];
-                for (i, f) in stream {
-                    match f.await {
-                        Ok(o) => ok_vec.push((i, o)),
-                        Err(e) => err_vec.push(e),
+                for (i, h) in queue.drain(paging) {
+                    match h.get_info().await {
+                        Ok(ts) => ok_vec.push((i, ts.into())),
+                        Err(e) => err_vec.push(e.to_string()),
                     }
                 }
                 (ok_vec, err_vec)
