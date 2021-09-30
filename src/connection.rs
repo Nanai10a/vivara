@@ -1,6 +1,7 @@
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::ops::Bound;
+use core::time::Duration;
 use std::thread::spawn;
 
 use actix::prelude::{
@@ -8,14 +9,14 @@ use actix::prelude::{
     ResponseFuture, Supervised, WrapFuture,
 };
 use dashmap::{DashMap, Map};
-use futures_util::StreamExt;
+use futures_util::{StreamExt, TryFutureExt};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use songbird::error::JoinError;
 use songbird::id::{ChannelId, GuildId};
 use songbird::input::cached::Memory;
 use songbird::input::{ytdl, Input};
-use songbird::tracks::{LoopState, TrackHandle};
+use songbird::tracks::{LoopState, PlayMode, TrackHandle, TrackState};
 use songbird::{create_player, Call, Songbird};
 use tokio::sync::Mutex;
 use twilight_gateway::cluster::Events;
@@ -30,6 +31,7 @@ pub struct Connector {
     songbird: Arc<Songbird>,
     _events: Option<Events>,
     default_volumes: Arc<DashMap<u64, f32>>,
+    history: Arc<DashMap<u64, Vec<TrackInfo>>>,
 }
 impl Connector {
     async fn init() -> (Songbird, Events) {
@@ -109,6 +111,7 @@ impl Default for Connector {
             songbird: Arc::new(songbird),
             _events: events.pipe(Some),
             default_volumes: DashMap::new().pipe(Arc::new),
+            history: DashMap::new().pipe(Arc::new),
         }
     }
 }
@@ -551,6 +554,112 @@ impl Connector {
         .pipe(Ok)
     }
 }
+impl Handler<GetCurrentStatus> for Connector {
+    type Result = ResponseFuture<Result<CurrentStatus, String>>;
+
+    fn handle(
+        &mut self,
+        GetCurrentStatus { guild }: GetCurrentStatus,
+        ctx: &mut Self::Context,
+    ) -> Self::Result {
+        let songbird = self.songbird.clone();
+
+        async move {
+            let result: Result<TrackStatus, String> = try {
+                let call = Self::try_get_call(&songbird, guild.into())?;
+                let guard = call.lock().await;
+
+                let handle = Self::try_get_handle(&guard, guild.into())?;
+                handle.get_info().await.map_err(|e| e.to_string())?.into()
+            };
+
+            result.map(|current_track| CurrentStatus { current_track })
+        }
+        .pipe(Box::pin)
+    }
+}
+impl Handler<GetQueueStatus> for Connector {
+    type Result = ResponseFuture<Result<QueueStatus, String>>;
+
+    fn handle(
+        &mut self,
+        GetQueueStatus { guild, page }: GetQueueStatus,
+        ctx: &mut Self::Context,
+    ) -> Self::Result {
+        let songbird = self.songbird.clone();
+
+        async move {
+            if page <= 0 {
+                return "cannot specify page under 1".to_string().pipe(Err);
+            }
+
+            let result: Result<_, String> = try {
+                let call = Self::try_get_call(&songbird, guild.into())?;
+                let guard = call.lock().await;
+
+                let queue = guard.queue().current_queue();
+
+                const ITEMS: usize = 10;
+                let start = ITEMS * (page - 1);
+                let mut end = ITEMS * page;
+                if start > queue.len() {
+                    return "out of bounds".to_string().pipe(Err);
+                }
+                if end > queue.len() {
+                    end = queue.len();
+                }
+                let paging = start..end;
+
+                let stream = queue
+                    .drain(paging)
+                    .map(|h| h.get_info())
+                    .map(|f| f.map_err(|e| e.to_string()))
+                    .map(|f| f.map_ok(|s| s.into()));
+
+                let mut ok_vec = vec![];
+                let mut err_vec = vec![];
+                for f in stream {
+                    match f.await {
+                        Ok(o) => ok_vec.push(o),
+                        Err(e) => err_vec.push(e),
+                    }
+                }
+                (ok_vec, err_vec)
+            };
+
+            let (oks, errs) = match result {
+                Ok(o) => o,
+                Err(e) => return Err(e),
+            };
+
+            if errs.len() != 0 {
+                let mut buf = String::new();
+                errs.into_iter()
+                    .enumerate()
+                    .for_each(|(i, e)| buf += &format!("{}: {}", i, e));
+
+                return Err(buf);
+            }
+
+            QueueStatus { tracks: oks }.pipe(Ok)
+        }
+        .pipe(Box::pin)
+    }
+}
+impl Handler<GetHistoryStatus> for Connector {
+    type Result = Result<HistoryStatus, String>;
+
+    fn handle(
+        &mut self,
+        GetHistoryStatus { guild, page }: GetHistoryStatus,
+        ctx: &mut Self::Context,
+    ) -> Self::Result {
+        self.history
+            .get(&guild)
+            .map(|v| HistoryStatus { history: v.clone() })
+            .ok_or("no history".to_string())
+    }
+}
 impl Supervised for Connector {}
 impl ArbiterService for Connector {}
 
@@ -595,24 +704,92 @@ impl Message for ControlAction {
 pub struct GetCurrentStatus {
     pub guild: u64,
 }
-pub struct CurrentStatus {}
+pub struct CurrentStatus {
+    current_track: TrackStatus,
+}
 impl Message for GetCurrentStatus {
-    type Result = CurrentStatus;
+    type Result = Result<CurrentStatus, String>;
 }
 
 pub struct GetQueueStatus {
     pub guild: u64,
-    pub page: u32,
+    pub page: usize,
 }
-pub struct QueueStatus {}
+pub struct QueueStatus {
+    tracks: Vec<TrackStatus>,
+}
 impl Message for GetQueueStatus {
-    type Result = QueueStatus;
+    type Result = Result<QueueStatus, String>;
 }
 pub struct GetHistoryStatus {
     pub guild: u64,
-    pub page: u32,
+    pub page: usize,
 }
-pub struct HistoryStatus {}
+pub struct HistoryStatus {
+    history: Vec<TrackInfo>,
+}
 impl Message for GetHistoryStatus {
-    type Result = HistoryStatus;
+    type Result = Result<HistoryStatus, String>;
+}
+
+pub struct TrackStatus {
+    mode: TrackMode,
+    volume: f32,
+    position: Duration,
+    total: Duration,
+    loops: TrackLoop,
+}
+pub enum TrackMode {
+    Play,
+    Pause,
+    Stop,
+    End,
+}
+pub enum TrackLoop {
+    Infinite,
+    Finite(usize),
+}
+impl From<TrackState> for TrackStatus {
+    fn from(
+        TrackState {
+            playing,
+            volume,
+            position,
+            play_time,
+            loops,
+        }: TrackState,
+    ) -> Self {
+        TrackStatus {
+            mode: playing.into(),
+            volume,
+            position,
+            total: play_time,
+            loops: loops.into(),
+        }
+    }
+}
+impl From<PlayMode> for TrackMode {
+    fn from(mode: PlayMode) -> Self {
+        use PlayMode::*;
+        match mode {
+            Play => TrackMode::Play,
+            Pause => TrackMode::Pause,
+            Stop => TrackMode::Stop,
+            End => TrackMode::End,
+            _ => unreachable!("forgotten pattern"),
+        }
+    }
+}
+impl From<LoopState> for TrackLoop {
+    fn from(state: LoopState) -> Self {
+        use LoopState::*;
+        match state {
+            Infinite => TrackLoop::Infinite,
+            Finite(n) => TrackLoop::Finite(n),
+        }
+    }
+}
+#[derive(Clone)]
+pub struct TrackInfo {
+    url: String,
 }
