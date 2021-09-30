@@ -597,7 +597,12 @@ impl Handler<GetQueueStatus> for Connector {
                 let call = Self::try_get_call(&songbird, guild.into())?;
                 let guard = call.lock().await;
 
-                let queue = guard.queue().current_queue();
+                let queue = guard
+                    .queue()
+                    .current_queue()
+                    .into_iter()
+                    .enumerate()
+                    .collect::<Vec<_>>();
 
                 const ITEMS: usize = 10;
                 let start = ITEMS * (page - 1);
@@ -612,15 +617,15 @@ impl Handler<GetQueueStatus> for Connector {
 
                 let stream = queue
                     .drain(paging)
-                    .map(|h| h.get_info())
-                    .map(|f| f.map_err(|e| e.to_string()))
-                    .map(|f| f.map_ok(|s| s.into()));
+                    .map(|(i, h)| (i, h.get_info()))
+                    .map(|(i, f)| (i, f.map_err(|e| e.to_string())))
+                    .map(|(i, f)| (i, f.map_ok(|s| s.into())));
 
                 let mut ok_vec = vec![];
                 let mut err_vec = vec![];
-                for f in stream {
+                for (i, f) in stream {
                     match f.await {
-                        Ok(o) => ok_vec.push(o),
+                        Ok(o) => ok_vec.push((i, o)),
                         Err(e) => err_vec.push(e),
                     }
                 }
@@ -656,7 +661,9 @@ impl Handler<GetHistoryStatus> for Connector {
     ) -> Self::Result {
         self.history
             .get(&guild)
-            .map(|v| HistoryStatus { history: v.clone() })
+            .map(|v| HistoryStatus {
+                history: v.iter().cloned().enumerate().collect(),
+            })
             .ok_or("no history".to_string())
     }
 }
@@ -716,7 +723,7 @@ pub struct GetQueueStatus {
     pub page: usize,
 }
 pub struct QueueStatus {
-    pub tracks: Vec<TrackStatus>,
+    pub tracks: Vec<(usize, TrackStatus)>,
 }
 impl Message for GetQueueStatus {
     type Result = Result<QueueStatus, String>;
@@ -726,7 +733,7 @@ pub struct GetHistoryStatus {
     pub page: usize,
 }
 pub struct HistoryStatus {
-    pub history: Vec<TrackInfo>,
+    pub history: Vec<(usize, TrackInfo)>,
 }
 impl Message for GetHistoryStatus {
     type Result = Result<HistoryStatus, String>;
