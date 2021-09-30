@@ -185,7 +185,7 @@ impl Connector {
     ) -> StringResult {
         let _: Option<()> = try {
             let current = songbird.get(guild)?.lock().await.current_channel()?;
-            if current == channel.into() {
+            if current == channel {
                 return Err("already joined".to_string());
             }
         };
