@@ -590,7 +590,7 @@ impl Handler<GetQueueStatus> for Connector {
         let songbird = self.songbird.clone();
 
         async move {
-            if page <= 0 {
+            if page == 0 {
                 return "cannot specify page under 1".to_string().pipe(Err);
             }
 
