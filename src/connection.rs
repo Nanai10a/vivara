@@ -15,8 +15,7 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use songbird::error::JoinError;
 use songbird::id::{ChannelId, GuildId};
-use songbird::input::cached::Memory;
-use songbird::input::{ytdl, Input};
+use songbird::input::ytdl;
 use songbird::tracks::{LoopState, PlayMode, TrackHandle, TrackState};
 use songbird::{create_player, Call, Songbird};
 use tokio::sync::Mutex;
@@ -74,17 +73,6 @@ impl Connector {
         };
 
         (Songbird::twilight(cluster, user_id), events)
-    }
-
-    async fn create_track(url: String) -> Result<Input, String> {
-        let source = songbird::ytdl(url).await.map_err(|e| e.to_string())?;
-
-        let input = Memory::new(source)
-            .map_err(|e| e.to_string())?
-            .pipe(|m| m.try_into())
-            .map_err(|e: songbird::input::error::Error| e.to_string())?;
-
-        Ok(input)
     }
 
     fn try_get_call(songbird: &Arc<Songbird>, guild: GuildId) -> Result<Arc<Mutex<Call>>, String> {
