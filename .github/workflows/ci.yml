@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  push:
+    branches:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    strategy:
+      matrix:
+        target:
+        - x86_64-unknown-linux-gnu
+        - x86_64-pc-windows-msvc
+        - x86_64-apple-darwin
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+
+    - name: toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        target: ${{ matrix.target }}
+        profile: minimal
+        components: clippy, rustfmt
+        default: true
+
+    - name: cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: fmt
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --verbose --check
+
+    - name: clippy
+      uses: actions-rs/clippy-check@v1
+      with:
+          token: ${{ github.token }}
+          args: --workspace --all-features
+
+    - name: build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --workspace --release --all-features
+
+    - name: test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --workspace --release --all-features

@@ -1,0 +1,113 @@
+name: release
+
+on:
+  push:
+    tags:
+    - '*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+
+    - name: fetch-tag
+      id: tag
+      run: |
+        tag=$(echo ${{ github.ref }} | sed 's#refs/.\+/##')
+        echo ::set-output name=tag::$tag
+
+    - name: create-release
+      id: create_release
+      uses: actions/create-release@v1
+      with:
+        draft: false
+        prerelease: false
+        release_name: ${{ steps.tag.outputs.tag }}
+        tag_name: ${{ steps.tag.outputs.tag }}
+        body_path: CHANGELOG.md
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+  release:
+    strategy:
+      matrix:
+        target:
+        - x86_64-unknown-linux-gnu
+        - x86_64-pc-windows-msvc
+        - x86_64-apple-darwin
+
+    runs-on: ubuntu-latest
+
+    needs: prepare
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+
+    - name: toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        target: ${{ matrix.target }}
+        profile: minimal
+        default: true
+
+    - name: cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --workspace --release --all-features
+
+    - name: test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --workspace --release --all-features
+
+    - name: determine-pkg-ext
+      id: ext
+      run: |
+        e='.tar.gz'
+        if "${{ contains( matrix.target, 'windows') }}"; then
+          e='.zip'
+        fi
+        echo ::set-output name=ext::$e
+
+    - name: packaging
+      run: |
+        tar cavf target/packaged${{ steps.ext.outputs.ext }} \
+          Cargo.* \
+          *.md \
+          LICENSE \
+          src/**/*.rs \
+          target/release/icey_pudding
+
+    - name: upload-assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{ needs.prepare.outputs.upload_url }}
+        asset_path: target/packaged${{ steps.ext.outputs.ext }}
+        asset_name: icey_pudding-${{ matrix.target }}-${{ needs.prepare.outputs.tag }}${{ steps.ext.outputs.ext }}
+        asset_content_type: application/gzip
