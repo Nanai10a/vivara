@@ -659,7 +659,7 @@ impl Handler<GetHistoryStatus> for Connector {
             .map(|v| HistoryStatus {
                 history: v.iter().cloned().enumerate().collect(),
             })
-            .ok_or("no history".to_string())
+            .ok_or_else(|| "no history".to_string())
     }
 }
 impl Supervised for Connector {}
