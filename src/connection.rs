@@ -94,7 +94,7 @@ impl Connector {
         }
     }
 
-    fn try_get_handle(call: &Call, guild: GuildId) -> Result<TrackHandle, String> {
+    fn try_get_handle(call: &Call) -> Result<TrackHandle, String> {
         match call.queue().current() {
             Some(th) => th.pipe(Ok),
             None => JoinError::NoCall.to_string().pipe(Err),
@@ -433,7 +433,7 @@ impl Connector {
         let call = Self::try_get_call(&songbird, guild)?;
         let guard = call.lock().await;
 
-        let handle = Self::try_get_handle(&guard, guild)?;
+        let handle = Self::try_get_handle(&guard)?;
 
         handle.pause().map_err(|e| e.to_string())?;
 
@@ -450,7 +450,7 @@ impl Connector {
         let call = Self::try_get_call(&songbird, guild)?;
         let guard = call.lock().await;
 
-        let handle = Self::try_get_handle(&guard, guild)?;
+        let handle = Self::try_get_handle(&guard)?;
 
         handle.play().map_err(|e| e.to_string())?;
 
@@ -467,7 +467,7 @@ impl Connector {
         let call = Self::try_get_call(&songbird, guild)?;
         let guard = call.lock().await;
 
-        let handle = Self::try_get_handle(&guard, guild)?;
+        let handle = Self::try_get_handle(&guard)?;
         let state = handle.get_info().await.map_err(|e| e.to_string())?.loops;
 
         use LoopState::*;
@@ -524,7 +524,7 @@ impl Connector {
         let guard = call.lock().await;
 
         if current_only {
-            let handle = Self::try_get_handle(&guard, guild)?;
+            let handle = Self::try_get_handle(&guard)?;
             handle.set_volume(volume).map_err(|e| e.to_string())?;
 
             "changed volume"
@@ -570,7 +570,7 @@ impl Handler<GetCurrentStatus> for Connector {
                 let call = Self::try_get_call(&songbird, guild.into())?;
                 let guard = call.lock().await;
 
-                let handle = Self::try_get_handle(&guard, guild.into())?;
+                let handle = Self::try_get_handle(&guard)?;
                 handle.get_info().await.map_err(|e| e.to_string())?.into()
             };
 
