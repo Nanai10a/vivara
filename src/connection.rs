@@ -539,7 +539,7 @@ impl Connector {
                     .collect::<Vec<_>>()
             });
 
-            if results.len() != 0 {
+            if !results.is_empty() {
                 let mut buf = String::new();
                 results
                     .into_iter()
@@ -632,7 +632,7 @@ impl Handler<GetQueueStatus> for Connector {
                 Err(e) => return Err(e),
             };
 
-            if errs.len() != 0 {
+            if errs.is_empty() {
                 let mut buf = String::new();
                 errs.into_iter()
                     .enumerate()
