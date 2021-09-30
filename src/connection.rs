@@ -6,10 +6,10 @@ use core::time::Duration;
 use std::thread::spawn;
 
 use actix::prelude::{
-    Actor, ActorFutureExt, ArbiterService, Context, ContextFutureSpawner, Handler, Message,
-    ResponseFuture, Supervised, WrapFuture,
+    Actor, ArbiterService, Context, ContextFutureSpawner, Handler, Message, ResponseFuture,
+    Supervised, WrapFuture,
 };
-use dashmap::{DashMap, Map};
+use dashmap::DashMap;
 use futures_util::{StreamExt, TryFutureExt};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
