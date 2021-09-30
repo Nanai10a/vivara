@@ -338,7 +338,7 @@ impl Connector {
         Self::_fix(songbird, guild).await
     }
 
-    async fn _fix(songbird: Arc<Songbird>, guild: GuildId) -> StringResult {
+    async fn _fix(_: Arc<Songbird>, _: GuildId) -> StringResult {
         // TODO
         "no operated".to_string().pipe(Ok)
     }
@@ -561,7 +561,7 @@ impl Handler<GetCurrentStatus> for Connector {
     fn handle(
         &mut self,
         GetCurrentStatus { guild }: GetCurrentStatus,
-        ctx: &mut Self::Context,
+        _: &mut Self::Context,
     ) -> Self::Result {
         let songbird = self.songbird.clone();
 
@@ -585,7 +585,7 @@ impl Handler<GetQueueStatus> for Connector {
     fn handle(
         &mut self,
         GetQueueStatus { guild, page }: GetQueueStatus,
-        ctx: &mut Self::Context,
+        _: &mut Self::Context,
     ) -> Self::Result {
         let songbird = self.songbird.clone();
 
@@ -658,7 +658,7 @@ impl Handler<GetHistoryStatus> for Connector {
     fn handle(
         &mut self,
         GetHistoryStatus { guild, page }: GetHistoryStatus,
-        ctx: &mut Self::Context,
+        _: &mut Self::Context,
     ) -> Self::Result {
         self.history
             .get(&guild)
