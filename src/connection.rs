@@ -1,5 +1,6 @@
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
+use core::fmt::Display;
 use core::ops::Bound;
 use core::time::Duration;
 use std::thread::spawn;
@@ -752,9 +753,33 @@ pub enum TrackMode {
     Stop,
     End,
 }
+impl Display for TrackMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use TrackMode::*;
+        let s = match self {
+            Play => "Play",
+            Pause => "Pause",
+            Stop => "Stop",
+            End => "End",
+        };
+
+        write!(f, "{}", s)
+    }
+}
 pub enum TrackLoop {
     Infinite,
     Finite(usize),
+}
+impl Display for TrackLoop {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use TrackLoop::*;
+        let s = match self {
+            Infinite => "Infinite".to_string(),
+            Finite(t) => format!("Finite - until {} times", t),
+        };
+
+        write!(f, "{}", s)
+    }
 }
 impl From<TrackState> for TrackStatus {
     fn from(
