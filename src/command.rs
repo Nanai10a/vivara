@@ -1,12 +1,17 @@
 use std::ops::Bound;
 
 use actix::prelude::{Actor, ArbiterService, Context, Handler, Message, Supervised};
+use actix::ResponseFuture;
 use clap::{ArgGroup, Clap};
 use url::Url;
 
-use crate::connection::{CallAction, CallActionKind, Connector, ControlAction, ControlActionKind};
+use crate::connection::{
+    CallAction, CallActionKind, Connector, ControlAction, ControlActionKind, CurrentStatus,
+    DropKind, GetCurrentStatus, GetHistoryStatus, GetQueueStatus, HistoryStatus, QueueStatus,
+    TrackInfo, TrackStatus,
+};
 use crate::gateway::{MessageRef, RawCommand};
-use crate::util::reply_err;
+use crate::util::{reply, reply_err, Pipe};
 
 #[derive(Default)]
 pub struct CommandParser;
@@ -72,38 +77,26 @@ enum GuildCommand {
         channel: u64,
     },
     Leave,
-
-    Enqueue {
-        url: Url,
+    Slide {
+        from: usize,
+        to: usize,
     },
-
-    ShowCurrent,
-    ShowQueue {
-        page: Option<u32>,
-    },
-    ShowHistory {
-        page: Option<u32>,
-    },
-
-    Play {
-        url: Option<Url>,
-    },
-    Pause,
-    Resume,
     #[clap(group = ArgGroup::new("items").required(true))]
-    Skip {
+    Drop {
         #[clap(short = 'i', long, group = "items")]
         items: Option<usize>,
         #[clap(short = 'r', long, group = "items", parse(try_from_str = range_parser::parse))]
         range: Option<(Bound<usize>, Bound<usize>)>,
     },
-    #[clap(group = ArgGroup::new("items").required(true))]
-    Loop {
-        #[clap(short = 'i', long, group = "items")]
-        index: Option<usize>,
-        #[clap(short = 'r', long, group = "items", parse(try_from_str = range_parser::parse))]
-        range: Option<(Bound<usize>, Bound<usize>)>,
+    Fix,
+    Stop,
+
+    Enqueue {
+        url: Url,
     },
+    Pause,
+    Resume,
+    Loop,
     Shuffle,
     Volume {
         percent: f32,
@@ -111,7 +104,14 @@ enum GuildCommand {
     VolumeCurrent {
         percent: f32,
     },
-    Stop,
+
+    ShowCurrent,
+    ShowQueue {
+        page: Option<usize>,
+    },
+    ShowHistory {
+        page: Option<usize>,
+    },
 }
 
 #[derive(Clap)]
@@ -137,69 +137,201 @@ impl Actor for GuildCommandProcesser {
     type Context = Context<Self>;
 }
 impl Handler<GuildCommandData> for GuildCommandProcesser {
-    type Result = ();
+    type Result = ResponseFuture<()>;
 
     fn handle(
         &mut self,
         GuildCommandData { cmd, from, guild }: GuildCommandData,
         _: &mut Self::Context,
     ) -> Self::Result {
-        use GuildCommand::*;
-        match cmd {
-            Join { channel } => Connector::from_registry()
-                .try_send(CallAction {
-                    kind: CallActionKind::Join { channel },
-                    from,
-                    guild,
-                })
-                .expect("failed sending"),
-            Leave => Connector::from_registry()
-                .try_send(CallAction {
-                    kind: CallActionKind::Leave,
-                    from,
-                    guild,
-                })
-                .expect("failed sending"),
+        async move {
+            use GuildCommand::*;
+            match cmd {
+                Join { channel } => Connector::from_registry()
+                    .try_send(CallAction {
+                        kind: CallActionKind::Join { channel },
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+                Leave => Connector::from_registry()
+                    .try_send(CallAction {
+                        kind: CallActionKind::Leave,
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+                Slide {
+                    from: origin,
+                    to: dest,
+                } => Connector::from_registry()
+                    .try_send(CallAction {
+                        kind: CallActionKind::Slide {
+                            from: origin,
+                            to: dest,
+                        },
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+                Drop { items, range } => {
+                    let kind = match (items, range) {
+                        (Some(n), None) => DropKind::Index(n),
+                        (None, Some(r)) => DropKind::Range(r),
+                        t => unreachable!("unexpected pattern: {:?}", t),
+                    };
 
-            Enqueue { url } => Connector::from_registry()
-                .try_send(ControlAction {
-                    kind: ControlActionKind::Queue {
-                        url: url.to_string(),
-                    },
-                    from,
-                    guild,
-                })
-                .expect("failed sending"),
+                    Connector::from_registry()
+                        .try_send(CallAction {
+                            kind: CallActionKind::Drop { kind },
+                            from,
+                            guild,
+                        })
+                        .expect("failed sending")
+                },
+                Fix => Connector::from_registry()
+                    .try_send(CallAction {
+                        kind: CallActionKind::Fix,
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+                Stop => Connector::from_registry()
+                    .try_send(CallAction {
+                        kind: CallActionKind::Stop,
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
 
-            ShowCurrent => unimplemented!(),
-            ShowQueue { page } => unimplemented!(),
-            ShowHistory { page } => unimplemented!(),
+                Enqueue { url } => Connector::from_registry()
+                    .try_send(ControlAction {
+                        kind: ControlActionKind::Enqueue {
+                            url: url.to_string(),
+                        },
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
 
-            Play { url } => Connector::from_registry()
-                .try_send(CallAction {
-                    kind: CallActionKind::Play {
-                        url: url.map(|u| u.to_string()),
-                    },
-                    from,
-                    guild,
-                })
-                .expect("failed sending"),
-            Pause => unimplemented!(),
-            Resume => unimplemented!(),
-            Skip { items, range } => unimplemented!(),
-            Loop { index, range } => unimplemented!(),
-            Shuffle => unimplemented!(),
-            Volume { percent } => unimplemented!(),
-            VolumeCurrent { percent } => unimplemented!(),
-            Stop => Connector::from_registry()
-                .try_send(CallAction {
-                    kind: CallActionKind::Stop,
-                    from,
-                    guild,
-                })
-                .expect("failed sending"),
+                Pause => Connector::from_registry()
+                    .try_send(ControlAction {
+                        kind: ControlActionKind::Pause,
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+                Resume => Connector::from_registry()
+                    .try_send(ControlAction {
+                        kind: ControlActionKind::Resume,
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+                Loop => Connector::from_registry()
+                    .try_send(ControlAction {
+                        kind: ControlActionKind::Loop,
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+                Shuffle => Connector::from_registry()
+                    .try_send(ControlAction {
+                        kind: ControlActionKind::Shuffle,
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+                Volume { percent } => Connector::from_registry()
+                    .try_send(ControlAction {
+                        kind: ControlActionKind::Volume {
+                            percent,
+                            current_only: false,
+                        },
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+                VolumeCurrent { percent } => Connector::from_registry()
+                    .try_send(ControlAction {
+                        kind: ControlActionKind::Volume {
+                            percent,
+                            current_only: true,
+                        },
+                        from,
+                        guild,
+                    })
+                    .expect("failed sending"),
+
+                ShowCurrent => Connector::from_registry()
+                    .send(GetCurrentStatus { guild })
+                    .await
+                    .expect("failed sending")
+                    .map_err(|e| reply_err(e, from))
+                    .map(|CurrentStatus { current_track }| {
+                        format!("current:\n{}", format_track_status(current_track))
+                    })
+                    .map(|msg| reply(msg, from))
+                    .pipe(drop),
+                ShowQueue { page } => Connector::from_registry()
+                    .send(GetQueueStatus {
+                        guild,
+                        page: page.unwrap_or(1),
+                    })
+                    .await
+                    .expect("failed sending")
+                    .map_err(|e| reply_err(e, from))
+                    .map(|QueueStatus { tracks }| {
+                        let mut buf = String::new();
+                        tracks.into_iter().for_each(|(i, ts)| {
+                            buf += &format!("{}:\n{}\n\n", i, format_track_status(ts));
+                        });
+                        buf
+                    })
+                    .map(|msg| reply(msg, from))
+                    .pipe(drop),
+                ShowHistory { page } => Connector::from_registry()
+                    .send(GetHistoryStatus {
+                        guild,
+                        page: page.unwrap_or(1),
+                    })
+                    .await
+                    .expect("failed sending")
+                    .map_err(|e| reply_err(e, from))
+                    .map(|HistoryStatus { history }| {
+                        let mut buf = String::new();
+                        history.into_iter().for_each(|(idx, info)| {
+                            buf += &format!("{}\n{}\n\n", idx, format_track_info(info))
+                        });
+                        buf
+                    })
+                    .map(|msg| reply(msg, from))
+                    .pipe(drop),
+            }
         }
+        .pipe(Box::pin)
     }
 }
 impl Supervised for GuildCommandProcesser {}
 impl ArbiterService for GuildCommandProcesser {}
+
+fn format_track_status(
+    TrackStatus {
+        mode,
+        volume,
+        position,
+        total,
+        loops,
+    }: TrackStatus,
+) -> String {
+    format!(
+        "mode: {}\nvolume: {}\nposition: {}s\ntotal playing: {}s\nloop: {}",
+        mode,
+        volume,
+        position.as_secs_f32(),
+        total.as_secs_f32(),
+        loops
+    )
+}
+
+fn format_track_info(TrackInfo { url }: TrackInfo) -> String { format!("url: {}", url) }
