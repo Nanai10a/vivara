@@ -705,7 +705,7 @@ pub struct GetCurrentStatus {
     pub guild: u64,
 }
 pub struct CurrentStatus {
-    current_track: TrackStatus,
+    pub current_track: TrackStatus,
 }
 impl Message for GetCurrentStatus {
     type Result = Result<CurrentStatus, String>;
@@ -716,7 +716,7 @@ pub struct GetQueueStatus {
     pub page: usize,
 }
 pub struct QueueStatus {
-    tracks: Vec<TrackStatus>,
+    pub tracks: Vec<TrackStatus>,
 }
 impl Message for GetQueueStatus {
     type Result = Result<QueueStatus, String>;
@@ -726,18 +726,18 @@ pub struct GetHistoryStatus {
     pub page: usize,
 }
 pub struct HistoryStatus {
-    history: Vec<TrackInfo>,
+    pub history: Vec<TrackInfo>,
 }
 impl Message for GetHistoryStatus {
     type Result = Result<HistoryStatus, String>;
 }
 
 pub struct TrackStatus {
-    mode: TrackMode,
-    volume: f32,
-    position: Duration,
-    total: Duration,
-    loops: TrackLoop,
+    pub mode: TrackMode,
+    pub volume: f32,
+    pub position: Duration,
+    pub total: Duration,
+    pub loops: TrackLoop,
 }
 pub enum TrackMode {
     Play,
@@ -791,5 +791,5 @@ impl From<LoopState> for TrackLoop {
 }
 #[derive(Clone)]
 pub struct TrackInfo {
-    url: String,
+    pub url: String,
 }
