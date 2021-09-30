@@ -641,10 +641,31 @@ impl Handler<GetHistoryStatus> for Connector {
     ) -> Self::Result {
         self.history
             .get(&guild)
-            .map(|v| HistoryStatus {
-                history: v.iter().cloned().enumerate().collect(),
+            .map(|v| {
+                const ITEMS: usize = 10;
+                let start = ITEMS * (page - 1);
+                let mut end = ITEMS * page;
+                if start > v.len() {
+                    return "out of bounds".to_string().pipe(Err);
+                }
+                if end > v.len() {
+                    end = v.len();
+                }
+                let paging = start..end;
+
+                HistoryStatus {
+                    history: v
+                        .iter()
+                        .collect::<Vec<_>>()
+                        .drain(paging)
+                        .cloned()
+                        .enumerate()
+                        .collect(),
+                }
+                .pipe(Ok)
             })
             .ok_or_else(|| "no history".to_string())
+            .flatten()
     }
 }
 impl Supervised for Connector {}
