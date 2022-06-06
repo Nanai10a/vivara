@@ -21,7 +21,7 @@ range_parser = { git = "https://github.com/Nanai10a/range_parser.git" }
 rand = "0.8.4"
 
 [dependencies.tokio]
-version = "1.12.0"
+version = "1.13.1"
 features = ["sync"]
 
 [dependencies.twilight-gateway]
