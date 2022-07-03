@@ -26,7 +26,7 @@ impl Handler<RawCommand> for CommandParser {
         RawCommand {
             content,
             from,
-            user,
+            user: _,
             guild,
         }: RawCommand,
         _: &mut Self::Context,
@@ -41,7 +41,7 @@ impl Handler<RawCommand> for CommandParser {
 
             match guild {
                 None => {
-                    let PrivateCommandParser { cmd } =
+                    let PrivateCommandParser { cmd: _ } =
                         PrivateCommandParser::try_parse_from(split).map_err(|e| e.to_string())?;
 
                     unimplemented!();
