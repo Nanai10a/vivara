@@ -2,7 +2,7 @@ use std::ops::Bound;
 
 use actix::prelude::{Actor, ArbiterService, Context, Handler, Message, Supervised};
 use actix::ResponseFuture;
-use clap::{ArgGroup, Clap};
+use clap::{ArgGroup, Parser};
 use url::Url;
 
 use crate::connection::{
@@ -66,12 +66,12 @@ impl Handler<RawCommand> for CommandParser {
 impl Supervised for CommandParser {}
 impl ArbiterService for CommandParser {}
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct GuildCommandParser {
     #[clap(subcommand)]
     cmd: GuildCommand,
 }
-#[derive(Clap)]
+#[derive(Parser)]
 enum GuildCommand {
     Join {
         channel: u64,
@@ -114,12 +114,12 @@ enum GuildCommand {
     },
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct PrivateCommandParser {
     #[clap(subcommand)]
     cmd: PrivateCommand,
 }
-#[derive(Clap)]
+#[derive(Parser)]
 enum PrivateCommand {}
 
 pub struct GuildCommandData {
