@@ -1,6 +1,6 @@
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
-use core::fmt::Display;
+use core::fmt::{Display, Write};
 use core::ops::Bound;
 use core::time::Duration;
 
@@ -468,7 +468,7 @@ impl Connector {
                 results
                     .into_iter()
                     .enumerate()
-                    .for_each(|(i, e)| buf += &format!("{}: {}", i, e));
+                    .for_each(|(i, e)| write!(buf, "{}: {}", i, e).unwrap());
 
                 return Err(buf);
             }
@@ -560,7 +560,7 @@ impl Handler<GetQueueStatus> for Connector {
                 let mut buf = String::new();
                 errs.into_iter()
                     .enumerate()
-                    .for_each(|(i, e)| buf += &format!("{}: {}", i, e));
+                    .for_each(|(i, e)| write!(buf, "{}: {}", i, e).unwrap());
 
                 return Err(buf);
             }

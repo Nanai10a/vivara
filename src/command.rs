@@ -1,3 +1,4 @@
+use core::fmt::Write;
 use std::ops::Bound;
 
 use actix::prelude::{Actor, ArbiterService, Context, Handler, Message, Supervised};
@@ -284,7 +285,7 @@ impl Handler<GuildCommandData> for GuildCommandProcesser {
                     .map(|QueueStatus { tracks }| {
                         let mut buf = String::new();
                         tracks.into_iter().for_each(|(i, ts)| {
-                            buf += &format!("{}:\n{}\n\n", i, format_track_status(ts));
+                            write!(buf, "{}:\n{}\n\n", i, format_track_status(ts)).unwrap();
                         });
                         buf
                     })
@@ -301,7 +302,7 @@ impl Handler<GuildCommandData> for GuildCommandProcesser {
                     .map(|HistoryStatus { history }| {
                         let mut buf = String::new();
                         history.into_iter().for_each(|(idx, info)| {
-                            buf += &format!("{}\n{}\n\n", idx, format_track_info(info))
+                            write!(buf, "{}\n{}\n\n", idx, format_track_info(info)).unwrap()
                         });
                         buf
                     })
