@@ -138,8 +138,8 @@ dependencies = [
  "log",
  "pin-project-lite",
  "tokio",
- "tokio-rustls 0.22.0",
- "tungstenite 0.13.0",
+ "tokio-rustls",
+ "tungstenite",
  "webpki-roots",
 ]
 
@@ -185,15 +185,6 @@ name = "block-buffer"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
-dependencies = [
- "generic-array",
-]
-
-[[package]]
-name = "block-buffer"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bf7fe51849ea569fd452f37822f606a5cabb684dc918707a0193fd4664ff324"
 dependencies = [
  "generic-array",
 ]
@@ -364,22 +355,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "crypto-common"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5999502d32b9c48d492abe66392408144895020ec4709e549e840799f3bb74c0"
-dependencies = [
- "generic-array",
- "typenum",
-]
-
-[[package]]
 name = "ct-logs"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1a816186fa68d9e426e3cb4ae4dff1fcd8e4a2c34b781bf7a822574a0d0aac8"
 dependencies = [
- "sct 0.6.1",
+ "sct",
 ]
 
 [[package]]
@@ -411,16 +392,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
 dependencies = [
  "generic-array",
-]
-
-[[package]]
-name = "digest"
-version = "0.10.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2fb860ca6fafa5552fb6d0e816a69c8e49f0908bf524e30a90d97c85892d506"
-dependencies = [
- "block-buffer 0.10.2",
- "crypto-common",
 ]
 
 [[package]]
@@ -737,25 +708,11 @@ dependencies = [
  "futures-util",
  "hyper",
  "log",
- "rustls 0.19.1",
- "rustls-native-certs 0.5.0",
+ "rustls",
+ "rustls-native-certs",
  "tokio",
- "tokio-rustls 0.22.0",
- "webpki 0.21.4",
-]
-
-[[package]]
-name = "hyper-rustls"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d87c48c02e0dc5e3b849a2041db3029fd066650f8f717c07bf8ed78ccb895cac"
-dependencies = [
- "http",
- "hyper",
- "rustls 0.20.6",
- "rustls-native-certs 0.6.2",
- "tokio",
- "tokio-rustls 0.23.4",
+ "tokio-rustls",
+ "webpki",
 ]
 
 [[package]]
@@ -823,15 +780,6 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
-
-[[package]]
-name = "leaky-bucket-lite"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1411c737dd21a748044ab29af14b7f920b2dcc277284df6dd986492c98bf5229"
-dependencies = [
- "tokio",
-]
 
 [[package]]
 name = "libc"
@@ -957,15 +905,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19e64526ebdee182341572e50e9ad03965aa510cd94427a4549448f285e957a1"
 dependencies = [
  "hermit-abi",
- "libc",
-]
-
-[[package]]
-name = "num_threads"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2819ce041d2ee131036f4fc9d6ae7ae125a3a40e97ba64d04fe799ad9dabbb44"
-dependencies = [
  "libc",
 ]
 
@@ -1265,20 +1204,8 @@ dependencies = [
  "base64",
  "log",
  "ring",
- "sct 0.6.1",
- "webpki 0.21.4",
-]
-
-[[package]]
-name = "rustls"
-version = "0.20.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5aab8ee6c7097ed6057f43c187a62418d0c05a4bd5f18b3571db50ee0f9ce033"
-dependencies = [
- "log",
- "ring",
- "sct 0.7.0",
- "webpki 0.22.0",
+ "sct",
+ "webpki",
 ]
 
 [[package]]
@@ -1288,30 +1215,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a07b7c1885bd8ed3831c289b7870b13ef46fe0e856d288c30d9cc17d75a2092"
 dependencies = [
  "openssl-probe",
- "rustls 0.19.1",
+ "rustls",
  "schannel",
  "security-framework",
-]
-
-[[package]]
-name = "rustls-native-certs"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0167bac7a9f490495f3c33013e7722b53cb087ecbe082fb0c6387c96f634ea50"
-dependencies = [
- "openssl-probe",
- "rustls-pemfile",
- "schannel",
- "security-framework",
-]
-
-[[package]]
-name = "rustls-pemfile"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7522c9de787ff061458fe9a829dc790a3f5b22dc571694fc5883f448b94d9a9"
-dependencies = [
- "base64",
 ]
 
 [[package]]
@@ -1363,16 +1269,6 @@ name = "sct"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b362b83898e0e69f38515b82ee15aa80636befe47c3b6d3d89a911e78fc228ce"
-dependencies = [
- "ring",
- "untrusted",
-]
-
-[[package]]
-name = "sct"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
 dependencies = [
  "ring",
  "untrusted",
@@ -1472,22 +1368,11 @@ version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99cd6713db3cf16b6c84e06321e049a9b9f699826e16096d23bbcc44d15d51a6"
 dependencies = [
- "block-buffer 0.9.0",
+ "block-buffer",
  "cfg-if 1.0.0",
  "cpufeatures",
- "digest 0.9.0",
+ "digest",
  "opaque-debug",
-]
-
-[[package]]
-name = "sha-1"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "028f48d513f9678cda28f6e4064755b3fbb2af6acd672f2c209b62323f7aea0f"
-dependencies = [
- "cfg-if 1.0.0",
- "cpufeatures",
- "digest 0.10.3",
 ]
 
 [[package]]
@@ -1512,19 +1397,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "simd-json"
-version = "0.4.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0c3aaa7729b636ed4843efa96722f0d5823825b4f388d74c83757a3227f64d4"
-dependencies = [
- "halfbrown",
- "serde",
- "serde_json",
- "simdutf8",
- "value-trait",
 ]
 
 [[package]]
@@ -1594,8 +1466,8 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-futures",
- "twilight-gateway 0.6.5",
- "twilight-model 0.6.5",
+ "twilight-gateway",
+ "twilight-model",
  "typemap_rev",
  "url",
  "uuid",
@@ -1704,16 +1576,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "time"
-version = "0.3.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72c91f41dcb2f096c05f0873d667dceec1087ce5bcf984ec8ffb19acddbb3217"
-dependencies = [
- "libc",
- "num_threads",
-]
-
-[[package]]
 name = "tinyvec"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1765,20 +1627,9 @@ version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc6844de72e57df1980054b38be3a9f4702aba4858be64dd700181a8a6d0e1b6"
 dependencies = [
- "rustls 0.19.1",
+ "rustls",
  "tokio",
- "webpki 0.21.4",
-]
-
-[[package]]
-name = "tokio-rustls"
-version = "0.23.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c43ee83903113e03984cb9e5cebe6c04a5116269e900e3ddba8f068a62adda59"
-dependencies = [
- "rustls 0.20.6",
- "tokio",
- "webpki 0.22.0",
+ "webpki",
 ]
 
 [[package]]
@@ -1790,28 +1641,12 @@ dependencies = [
  "futures-util",
  "log",
  "pin-project",
- "rustls 0.19.1",
+ "rustls",
  "tokio",
- "tokio-rustls 0.22.0",
- "tungstenite 0.13.0",
- "webpki 0.21.4",
+ "tokio-rustls",
+ "tungstenite",
+ "webpki",
  "webpki-roots",
-]
-
-[[package]]
-name = "tokio-tungstenite"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06cda1232a49558c46f8a504d5b93101d42c0bf7f911f12a105ba48168f821ae"
-dependencies = [
- "futures-util",
- "log",
- "rustls 0.20.6",
- "rustls-native-certs 0.6.2",
- "tokio",
- "tokio-rustls 0.23.4",
- "tungstenite 0.17.2",
- "webpki 0.22.0",
 ]
 
 [[package]]
@@ -1923,49 +1758,28 @@ dependencies = [
  "input_buffer",
  "log",
  "rand",
- "rustls 0.19.1",
- "sha-1 0.9.8",
+ "rustls",
+ "sha-1",
  "thiserror",
  "url",
  "utf-8",
- "webpki 0.21.4",
+ "webpki",
  "webpki-roots",
 ]
 
 [[package]]
-name = "tungstenite"
-version = "0.17.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d96a2dea40e7570482f28eb57afbe42d97551905da6a9400acc5c328d24004f5"
-dependencies = [
- "base64",
- "byteorder",
- "bytes",
- "http",
- "httparse",
- "log",
- "rand",
- "rustls 0.20.6",
- "sha-1 0.10.0",
- "thiserror",
- "url",
- "utf-8",
- "webpki 0.22.0",
-]
-
-[[package]]
 name = "twilight"
-version = "0.11.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "852f29910b1666cf306566a98925cf1de316845c5508b8a522573a55f2d6568f"
+checksum = "335383fc39bbe0aa529eea3c28deb00a43991333a06c0191d71e6703c809787a"
 
 [[package]]
 name = "twilight-embed-builder"
-version = "0.11.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b2bf9880f5584a07298238db08873af92e1597349f675e3ccb982ca19dbd129"
+checksum = "a13105b773175a704f8dd2c6c3c8a07476426d61b51d5e69d9d2eb5878f2ec93"
 dependencies = [
- "twilight-model 0.11.0",
+ "twilight-model",
 ]
 
 [[package]]
@@ -1981,33 +1795,11 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "tokio-tungstenite 0.14.0",
- "twilight-gateway-queue 0.6.0",
- "twilight-http 0.6.6",
- "twilight-model 0.6.5",
- "url",
-]
-
-[[package]]
-name = "twilight-gateway"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d952446d4dc7189d0908b48f254e94fdc154de88d45a55841c1cfcc76803180"
-dependencies = [
- "bitflags",
- "flate2",
- "futures-util",
- "leaky-bucket-lite",
- "rustls 0.20.6",
- "rustls-native-certs 0.6.2",
- "serde",
- "serde_json",
- "tokio",
- "tokio-tungstenite 0.17.1",
+ "tokio-tungstenite",
  "tracing",
- "twilight-gateway-queue 0.11.0",
- "twilight-http 0.11.0",
- "twilight-model 0.11.0",
+ "twilight-gateway-queue",
+ "twilight-http",
+ "twilight-model",
  "url",
 ]
 
@@ -2019,18 +1811,7 @@ checksum = "5f45ea68d917d5fbbfe739be9ace81d6824518262feb7a9139552bab64811f5a"
 dependencies = [
  "tokio",
  "tracing",
- "twilight-http 0.6.6",
-]
-
-[[package]]
-name = "twilight-gateway-queue"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f7951f688ea81c7f68bad1cfabbe1bb6bcc08984347e3075d20923b65ff2041"
-dependencies = [
- "tokio",
- "tracing",
- "twilight-http 0.11.0",
+ "twilight-http",
 ]
 
 [[package]]
@@ -2039,47 +1820,15 @@ version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08ef176da0d6a25e7f6b69d6efddacc215ac62313596047566726360ec6cf438"
 dependencies = [
- "hyper",
- "hyper-rustls 0.22.1",
- "percent-encoding",
- "rand",
- "serde",
- "serde_json",
- "tokio",
- "twilight-model 0.6.5",
-]
-
-[[package]]
-name = "twilight-http"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c02713ac747c27448be764d6629dcf4d07fbcd8fc855096b6e0ab6717c685be0"
-dependencies = [
  "brotli",
  "hyper",
- "hyper-rustls 0.23.0",
+ "hyper-rustls",
  "percent-encoding",
  "rand",
  "serde",
  "serde_json",
- "simd-json 0.4.15",
  "tokio",
- "tracing",
- "twilight-http-ratelimiting",
- "twilight-model 0.11.0",
- "twilight-validate",
-]
-
-[[package]]
-name = "twilight-http-ratelimiting"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8329e421d810eb18ddd41c3c1b78cbc6cd9e82b70850ac3f70d4e6d93e9ff72"
-dependencies = [
- "futures-util",
- "http",
- "tokio",
- "tracing",
+ "twilight-model",
 ]
 
 [[package]]
@@ -2093,29 +1842,6 @@ dependencies = [
  "serde-value",
  "serde_repr",
  "tracing",
-]
-
-[[package]]
-name = "twilight-model"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c44d87f62a032ea0d8053481672844cab0115330d99d655791be94a31d585256"
-dependencies = [
- "bitflags",
- "serde",
- "serde-value",
- "serde_repr",
- "time",
- "tracing",
-]
-
-[[package]]
-name = "twilight-validate"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d8ee22c7e5321064abdd9ad1c6a7f0a7502db11db018a2f72326c9314bcea41"
-dependencies = [
- "twilight-model 0.11.0",
 ]
 
 [[package]]
@@ -2235,16 +1961,16 @@ dependencies = [
  "rand",
  "range_parser",
  "shell-words",
- "simd-json 0.5.1",
+ "simd-json",
  "songbird",
  "tokio",
  "tracing",
  "tracing-subscriber",
  "twilight",
  "twilight-embed-builder",
- "twilight-gateway 0.11.0",
- "twilight-http 0.11.0",
- "twilight-model 0.11.0",
+ "twilight-gateway",
+ "twilight-http",
+ "twilight-model",
  "url",
 ]
 
@@ -2339,22 +2065,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "webpki"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f095d78192e208183081cc07bc5515ef55216397af48b873e5edcd72637fa1bd"
-dependencies = [
- "ring",
- "untrusted",
-]
-
-[[package]]
 name = "webpki-roots"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aabe153544e473b775453675851ecc86863d2a81d786d741f6b76778f2a48940"
 dependencies = [
- "webpki 0.21.4",
+ "webpki",
 ]
 
 [[package]]
