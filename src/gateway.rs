@@ -79,7 +79,7 @@ impl Actor for Responder {
     type Context = Context<Self>;
 }
 impl Handler<Reply> for Responder {
-    type Result = ();
+    type Result = Result<(), core::num::TryFromIntError>;
 
     fn handle(
         &mut self,
@@ -90,10 +90,10 @@ impl Handler<Reply> for Responder {
         ctx: &mut Self::Context,
     ) -> Self::Result {
         self.client
-            .create_message(channel.into())
+            .create_message(channel.try_into()?)
             .content(&msg)
             .expect("illegal message")
-            .reply(message.into())
+            .reply(message.try_into()?)
             .exec()
             .pipe(|f| async {
                 match f.await {
@@ -102,7 +102,9 @@ impl Handler<Reply> for Responder {
                 };
             })
             .into_actor(self)
-            .spawn(ctx)
+            .spawn(ctx);
+
+        Ok(())
     }
 }
 impl Supervised for Responder {}
@@ -114,5 +116,5 @@ pub struct Reply {
     pub to: MessageRef,
 }
 impl Message for Reply {
-    type Result = ();
+    type Result = Result<(), core::num::TryFromIntError>;
 }
