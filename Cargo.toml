@@ -22,7 +22,7 @@ twilight-http = "^0.12.0"
 twilight-util = "^0.12.0"
 
 [dependencies.tokio]
-version = "1.21.0"
+version = "1.24.2"
 features = ["sync"]
 
 [dependencies.twilight-gateway]
